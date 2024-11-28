@@ -1,9 +1,17 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from .models import Recipe, Ingredient, Tag
-from .serializers import (
+from .serializers import (AbstractUserSerializer, UserSubscriptionSerializer,
     RecipeSerializer, IngredientsSerializer, TagsSerializer)
-
+from users.models import AbstractUser
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework import viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
+from djoser.serializers import UserSerializer
+from rest_framework import viewsets, status
+from django.shortcuts import get_object_or_404
 
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
@@ -24,22 +32,32 @@ class TagsViewSet(viewsets.ModelViewSet):
     serializer_class = TagsSerializer
 
 
-
-'''from rest_framework import generics
-from rest_framework.permissions import IsAuthenticated
-from .models import User
-from .serializers import UserSerializer
-
-class UserCreateView(generics.CreateAPIView):
-    queryset = User.objects.all()
+class UserSubscriptionsViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
-
-class UserAvatarView(generics.UpdateAPIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = UserSerializer
 
-    def get_object(self):
-        return self.request.user
+    @action(detail=True, methods=('POST',))
+    def subscribe(self, request, id):
+        user = request.user
+        author = get_object_or_404(AbstractUser, id=id)
+        serializer = UserSubscriptionSerializer(
+            data={'user': user.id, 'author': author.id},
+            context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    def perform_update(self, serializer):
-        serializer.save()'''
+    @subscribe.mapping.delete
+    def unsubscribe(self, request, id):
+        user = request.user
+        author = get_object_or_404(AbstractUser, id=id)
+
+        if not user.follower.filter(author=author).exists():
+            return Response(
+                {'errors': 'Вы не подписаны на этого автора'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        subscription = get_object_or_404(Follow, user=user, author=author)
+        subscription.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

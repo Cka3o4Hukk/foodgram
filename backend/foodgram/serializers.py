@@ -1,22 +1,18 @@
 from rest_framework import serializers
 from .models import Ingredient, Recipe, Tag, RecipeIngredients
+from users.models import AbstractUser
+import base64
+from django.core.files.base import ContentFile
 
 
+class Base64ImageField(serializers.ImageField):
+    def to_internal_value(self, data):
+        if isinstance(data, str) and data.startswith('data:image'):
+            format, imgstr = data.split(';base64,')
+            ext = format.split('/')[-1]
+            data = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
+        return super().to_internal_value(data)
 
-'''from .models import User
-
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['email', 'username', 'first_name', 'last_name', 'password', 'avatar']
-        extra_kwargs = {'password': {'write_only': True}}
-
-    def create(self, validated_data):
-        user = User(**validated_data)
-        user.set_password(validated_data['password'])
-        user.save()
-        return user'''
-    
 
 class TagsSerializer(serializers.ModelSerializer):
     class Meta:
@@ -27,7 +23,7 @@ class TagsSerializer(serializers.ModelSerializer):
 class IngredientsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ingredient
-        fields = ['id', 'name', 'measurement_unit']
+        fields = '__all__'
 
 
 class RecipeIngredientsSerializer(serializers.ModelSerializer):
@@ -39,23 +35,63 @@ class RecipeIngredientsSerializer(serializers.ModelSerializer):
         fields = ['id', 'amount']
 
 
+class AbstractUserSerializer(serializers.ModelSerializer):
+    avatar = Base64ImageField()
+
+    class Meta:
+        model = AbstractUser
+        fields = ['email', 'id', 'username', 'first_name', 'last_name',
+                  'is_subscribed', 'avatar']  # avatar
+
+
 class RecipeSerializer(serializers.ModelSerializer):
-    ingredients = RecipeIngredientsSerializer(many=True)
+    ingredients = RecipeIngredientsSerializer(many=True, read_only=True)
+    tags = TagsSerializer(many=True, read_only=True)
+    author = AbstractUserSerializer(read_only=True)
+    image = Base64ImageField()
+    #ingredient = IngredientsSerializer(many=True, read_only=True)
 
     class Meta:
         model = Recipe
-        fields = ['name', 'text', 'cooking_time', 'ingredients']
+        fields = [
+            'id', 'tags',
+            'author', 'ingredients', 'image', 'text', 'name']
 
     def create(self, validated_data):
-        ingredients_data = validated_data.pop('ingredients')  # Извлекаем данные ингредиентов
-        recipe = Recipe.objects.create(**validated_data)  # Создаем рецепт
-        print("Словарик:", ingredients_data)
-
+        ingredients_data = validated_data.pop('ingredients')
+        recipe = Recipe.objects.create(**validated_data)
+        tags = Tag.objects.filter(id__in=self.initial_data.get('tags', []))
+        recipe.tags.set(tags)
+        ingredients = Ingredient.objects.filter(id__in=self.initial_data.get('ingredients', []))
+        recipe.ingredients.set(ingredients)
         for ingredient_data in ingredients_data:
-            print("Часть словаря: ", ingredient_data)
-            amount = ingredient_data['amount'] # amount = 5
-            print("Amount", amount)
-            id = ingredient_data['ingredient']['id'] # ingredient = {id:1}
-            print("id", id)
-            RecipeIngredients.objects.create(recipe=recipe, ingredient=Ingredient.objects.get(id=id), amount=amount)
+            RecipeIngredients.objects.create(
+                recipe=recipe,
+                ingredient=Ingredient.objects.get(
+                    id=ingredient_data['ingredient']['id']
+                ),
+                amount=ingredient_data['amount']
+            )
         return recipe
+
+
+class UserSubscriptionSerializer(serializers.ModelSerializer):
+    """Сериализатор для подписок пользователей"""
+
+    class Meta:
+        model = AbstractUser
+        fields = ['id', 'username', 'first_name', 'last_name',
+                  'is_subscribed', 'avatar', 'recipe', 'cooking_time']
+
+    def create(self, validated_data):
+        """Создание новой подписки"""
+        user = self.context['request'].user
+        subscription = AbstractUser.objects.create(user=user, **validated_data)
+        return subscription
+
+    def update(self, instance, validated_data):
+        """Обновление существующей подписки"""
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance

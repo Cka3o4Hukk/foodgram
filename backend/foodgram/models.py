@@ -50,16 +50,9 @@ class Recipe(models.Model):
         Tag,
         related_name='recipes'
     )
-    #ingredients = models.ManyToManyField(
-    #    Ingredient,
-    #    related_name='recipes',
-    #    through='RecipeIngredients',
-    # )
-    #image = models.ImageField(
-    #    upload_to='recipes/',
-    #    blank=True,
-    #    null=True
-    #)
+    image = models.ImageField(
+        upload_to='foodgram/recipes/images/',
+    )
     name = models.CharField(
         max_length=256,
         unique=True
@@ -97,10 +90,6 @@ class ShoppingCart(models.Model):
     def __str__(self):
         return self.name
 
-# мб мэни мэни
-#class User(AbstractUser):
-    #avatar = models.ImageField(upload_to='users/', blank=True, null=True)
-# class Recipe
-# избранное и список покупок - manytomany
-# короткая ссылка - можно поискать батарейку в инете как это сделать
-# создать рецепт - только зареганные
+
+class Follow:
+    
