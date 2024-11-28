@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Ingredient, Recipe, Tag, RecipeIngredients
+from .models import Ingredient, Recipe, Tag, RecipeIngredients, Follow
 from users.models import AbstractUser
 import base64
 from django.core.files.base import ContentFile
@@ -77,21 +77,8 @@ class RecipeSerializer(serializers.ModelSerializer):
 
 class UserSubscriptionSerializer(serializers.ModelSerializer):
     """Сериализатор для подписок пользователей"""
+    author = AbstractUserSerializer(read_only=True)
 
     class Meta:
-        model = AbstractUser
-        fields = ['id', 'username', 'first_name', 'last_name',
-                  'is_subscribed', 'avatar', 'recipe', 'cooking_time']
-
-    def create(self, validated_data):
-        """Создание новой подписки"""
-        user = self.context['request'].user
-        subscription = AbstractUser.objects.create(user=user, **validated_data)
-        return subscription
-
-    def update(self, instance, validated_data):
-        """Обновление существующей подписки"""
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        return instance
+        model = Follow 
+        fields = '__all__'

@@ -91,5 +91,9 @@ class ShoppingCart(models.Model):
         return self.name
 
 
-class Follow:
-    
+class Follow(models.Model):
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='following'
+    )

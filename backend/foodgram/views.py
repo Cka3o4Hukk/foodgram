@@ -1,6 +1,6 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
-from .models import Recipe, Ingredient, Tag
+from .models import Recipe, Ingredient, Tag, Follow
 from .serializers import (AbstractUserSerializer, UserSubscriptionSerializer,
     RecipeSerializer, IngredientsSerializer, TagsSerializer)
 from users.models import AbstractUser
@@ -33,13 +33,13 @@ class TagsViewSet(viewsets.ModelViewSet):
 
 
 class UserSubscriptionsViewSet(viewsets.ModelViewSet):
-    serializer_class = UserSerializer
+    serializer_class = UserSubscriptionSerializer
     permission_classes = [IsAuthenticated]
 
     @action(detail=True, methods=('POST',))
-    def subscribe(self, request, id):
+    def subscribe(self, request, pk):
         user = request.user
-        author = get_object_or_404(AbstractUser, id=id)
+        author = get_object_or_404(AbstractUser, id=pk)
         serializer = UserSubscriptionSerializer(
             data={'user': user.id, 'author': author.id},
             context={'request': request}
@@ -49,9 +49,9 @@ class UserSubscriptionsViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @subscribe.mapping.delete
-    def unsubscribe(self, request, id):
+    def unsubscribe(self, request, pk):
         user = request.user
-        author = get_object_or_404(AbstractUser, id=id)
+        author = get_object_or_404(AbstractUser, id=pk)
 
         if not user.follower.filter(author=author).exists():
             return Response(
