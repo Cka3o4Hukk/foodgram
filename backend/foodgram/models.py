@@ -12,7 +12,6 @@ class Tag(models.Model):
         regex=r'^[a-zA-Z0-9_-]+$',
         message='Slug должен содержать только буквы, цифры и дефисы.'
     )
-
     name = models.CharField(
         max_length=32,
         unique=True,
@@ -69,8 +68,16 @@ class Recipe(models.Model):
 
 
 class RecipeIngredients(models.Model):
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='ingredients')
-    ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE, related_name='recipes')
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='ingredients'
+    )
+    ingredient = models.ForeignKey(
+        Ingredient,
+        on_delete=models.CASCADE,
+        related_name='recipes'
+    )
     amount = models.PositiveIntegerField(validators=[MinValueValidator(1)])
 
     class Meta:
@@ -91,9 +98,17 @@ class ShoppingCart(models.Model):
         return self.name
 
 
-class Follow(models.Model):
-    author = models.ForeignKey(
+class FavoriteRecipe(models.Model):
+    user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='following'
+        related_name='favorite_recipes'
     )
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='favorites'
+    )
+
+    class Meta:
+        unique_together = ('user', 'recipe')

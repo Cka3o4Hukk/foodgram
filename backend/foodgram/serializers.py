@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Ingredient, Recipe, Tag, RecipeIngredients, Follow
+from .models import Ingredient, Recipe, Tag, RecipeIngredients
 from users.models import AbstractUser
 import base64
 from django.core.files.base import ContentFile
@@ -41,29 +41,27 @@ class AbstractUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = AbstractUser
         fields = ['email', 'id', 'username', 'first_name', 'last_name',
-                  'is_subscribed', 'avatar']  # avatar
+                  'is_subscribed', 'avatar']
 
 
 class RecipeSerializer(serializers.ModelSerializer):
-    ingredients = RecipeIngredientsSerializer(many=True, read_only=True)
+    ingredients = RecipeIngredientsSerializer(many=True, required=True)
     tags = TagsSerializer(many=True, read_only=True)
     author = AbstractUserSerializer(read_only=True)
     image = Base64ImageField()
-    #ingredient = IngredientsSerializer(many=True, read_only=True)
 
     class Meta:
         model = Recipe
         fields = [
             'id', 'tags',
-            'author', 'ingredients', 'image', 'text', 'name']
+            'author', 'ingredients', 'image', 'text', 'name', 'cooking_time']
 
     def create(self, validated_data):
+        print(validated_data)
         ingredients_data = validated_data.pop('ingredients')
         recipe = Recipe.objects.create(**validated_data)
         tags = Tag.objects.filter(id__in=self.initial_data.get('tags', []))
         recipe.tags.set(tags)
-        ingredients = Ingredient.objects.filter(id__in=self.initial_data.get('ingredients', []))
-        recipe.ingredients.set(ingredients)
         for ingredient_data in ingredients_data:
             RecipeIngredients.objects.create(
                 recipe=recipe,
@@ -75,10 +73,16 @@ class RecipeSerializer(serializers.ModelSerializer):
         return recipe
 
 
-class UserSubscriptionSerializer(serializers.ModelSerializer):
+'''class UserSubscriptionSerializer(serializers.ModelSerializer):
     """Сериализатор для подписок пользователей"""
     author = AbstractUserSerializer(read_only=True)
 
     class Meta:
-        model = Follow 
-        fields = '__all__'
+        model = Follow
+        fields = '__all__' '''
+
+
+class FavoriteRecipeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Recipe
+        fields = ['id', 'name', 'image', 'cooking_time']
