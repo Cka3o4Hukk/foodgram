@@ -13,7 +13,7 @@ class AbstractUserSerializer(serializers.ModelSerializer):
         fields = ['email', 'id', 'username', 'first_name', 'last_name',
                   'is_subscribed', 'avatar']
         extra_kwargs = {
-            'password': {'write_only': True},
+            'password': {'required': True},
             'email': {'required': True},
             'username': {'required': True},
             'first_name': {'required': True},
