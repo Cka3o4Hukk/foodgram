@@ -1,8 +1,10 @@
-from rest_framework import serializers
-from .models import Ingredient, Recipe, Tag, RecipeIngredients
-from users.models import AbstractUser
 import base64
 from django.core.files.base import ContentFile
+from rest_framework import serializers, validators
+from rest_framework.relations import SlugRelatedField
+
+from .models import Follow, Ingredient, Recipe, RecipeIngredients, Tag, User
+from users.models import AbstractUser
 
 
 class Base64ImageField(serializers.ImageField):
@@ -15,18 +17,23 @@ class Base64ImageField(serializers.ImageField):
 
 
 class TagsSerializer(serializers.ModelSerializer):
+    """Теги."""
     class Meta:
         model = Tag
         fields = '__all__'
 
 
 class IngredientsSerializer(serializers.ModelSerializer):
+    """Ингредиенты."""
+
     class Meta:
         model = Ingredient
         fields = '__all__'
 
 
 class RecipeIngredientsSerializer(serializers.ModelSerializer):
+    """Рецепты, промежуточная модель."""
+
     id = serializers.IntegerField(source='ingredient.id')
     amount = serializers.IntegerField()
 
@@ -36,15 +43,40 @@ class RecipeIngredientsSerializer(serializers.ModelSerializer):
 
 
 class AbstractUserSerializer(serializers.ModelSerializer):
-    avatar = Base64ImageField()
+    """Кастомный пользователь."""
+
+    avatar = serializers.SerializerMethodField()
 
     class Meta:
         model = AbstractUser
         fields = ['email', 'id', 'username', 'first_name', 'last_name',
                   'is_subscribed', 'avatar']
+        extra_kwargs = {
+            'password': {'write_only': True},
+            'email': {'required': True},
+            'username': {'required': True},
+            'first_name': {'required': True},
+            'last_name': {'required': True},
+        }
+
+    def get_avatar(self, obj):
+        """Возвращаем аватар, если он есть, иначе возвращаем None."""
+        return obj.avatar.url if obj.avatar else None
+
+
+class AvatarSerializer(serializers.ModelSerializer):
+    """Аватар пользователя."""
+
+    avatar = Base64ImageField()
+
+    class Meta:
+        model = AbstractUser
+        fields = ['avatar']
 
 
 class RecipeSerializer(serializers.ModelSerializer):
+    """Рецепты, основная модель."""
+
     ingredients = RecipeIngredientsSerializer(many=True, required=True)
     tags = TagsSerializer(many=True, read_only=True)
     author = AbstractUserSerializer(read_only=True)
@@ -57,7 +89,6 @@ class RecipeSerializer(serializers.ModelSerializer):
             'author', 'ingredients', 'image', 'text', 'name', 'cooking_time']
 
     def create(self, validated_data):
-        print(validated_data)
         ingredients_data = validated_data.pop('ingredients')
         recipe = Recipe.objects.create(**validated_data)
         tags = Tag.objects.filter(id__in=self.initial_data.get('tags', []))
@@ -73,16 +104,38 @@ class RecipeSerializer(serializers.ModelSerializer):
         return recipe
 
 
-'''class UserSubscriptionSerializer(serializers.ModelSerializer):
-    """Сериализатор для подписок пользователей"""
-    author = AbstractUserSerializer(read_only=True)
-
-    class Meta:
-        model = Follow
-        fields = '__all__' '''
-
-
 class FavoriteRecipeSerializer(serializers.ModelSerializer):
+    """Избранные рецепты."""
+
     class Meta:
         model = Recipe
         fields = ['id', 'name', 'image', 'cooking_time']
+
+
+class FollowSerializer(serializers.ModelSerializer):
+    """Подписки."""
+
+    user = SlugRelatedField(
+        slug_field='username',
+        read_only=True,
+        default=serializers.CurrentUserDefault())
+    following = SlugRelatedField(
+        slug_field='username',
+        queryset=User.objects.all())
+
+    def validate_following(self, value):
+        """Проверка, что пользователь не может подписаться на себя."""
+        if self.context['request'].user == value:
+            raise serializers.ValidationError(
+                'Вы не можете подписаться на себя')
+        return value
+
+    class Meta:
+        model = Follow
+        fields = ('user', 'following')
+        validators = [
+            validators.UniqueTogetherValidator(
+                queryset=Follow.objects.all(),
+                fields=('user', 'following')
+            )
+        ]

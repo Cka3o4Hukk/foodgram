@@ -112,3 +112,24 @@ class FavoriteRecipe(models.Model):
 
     class Meta:
         unique_together = ('user', 'recipe')
+
+
+class Follow(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='users'
+    )
+    following = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='following'
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=('user', 'following'),
+                name='unique_constraint'
+            )
+        ]

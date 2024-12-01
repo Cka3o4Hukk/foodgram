@@ -112,6 +112,12 @@ REST_FRAMEWORK = {
     ),
 }
 
+DJOSER = {
+    'SERIALIZERS': {
+        'user_create': 'users.serializers.AbstractUserSerializer'
+    }
+}
+
 AUTH_USER_MODEL = 'users.AbstractUser'
 
 # Static files (CSS, JavaScript, Images)
