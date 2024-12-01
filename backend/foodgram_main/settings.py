@@ -118,13 +118,12 @@ DJOSER = {
         'user_list': ['rest_framework.permissions.AllowAny'],
     },
     'SERIALIZERS': {
-        'user': 'users.serializers.AbstractUserSerializer',
         'current_user': 'users.serializers.AbstractUserSerializer',
         'user_create': 'users.serializers.AbstractUserSerializer',
     }
 }   
 
-AUTH_USER_MODEL = 'users.AbstractUser'
+AUTH_USER_MODEL = 'users.MyUser'
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.2/howto/static-files/

@@ -1,7 +1,7 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, AllowAny
 
-from .models import AbstractUser
+from .models import MyUser
 # from .permissions import AllowPostWithoutToken
 from foodgram.serializers import AbstractUserSerializer
 from rest_framework.decorators import action
@@ -11,11 +11,22 @@ from djoser.views import UserViewSet as DjoserUserViewSet
 from foodgram.serializers import AvatarSerializer
 from foodgram.models import Follow
 
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
 
 class UserViewSet(DjoserUserViewSet):
     serializer_class = AbstractUserSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
-    queryset = AbstractUser.objects.all()
+    queryset = MyUser.objects.all()
+
+    def list(self, request, *args, **kwargs):
+        """Возвращает список всех пользователей."""
+        print("1" * 100)
+        queryset = MyUser.objects.all()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
     @action(detail=False, methods=['put'], url_path='me/avatar',
             permission_classes=[IsAuthenticatedOrReadOnly])

@@ -3,7 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from .models import Recipe, Ingredient, Tag, FavoriteRecipe, Follow
 from .serializers import (AbstractUserSerializer, FavoriteRecipeSerializer, FollowSerializer,
     RecipeSerializer, IngredientsSerializer, TagsSerializer)
-from users.models import AbstractUser
+from users.models import MyUser
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import viewsets
