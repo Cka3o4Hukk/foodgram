@@ -1,0 +1,23 @@
+version: '3.3'
+volumes:
+  static:
+services:
+  backend:
+    command: bash /app/startup.sh
+    container_name: foodgram-back
+    build: ./backend/
+    volumes:
+      - static:/backend_static
+  frontend:
+    container_name: foodgram-front
+    build: ./frontend/
+    volumes:
+      - static:/frontend_static
+  nginx:
+    container_name: foodgram-proxy
+    build: ./nginx/
+    image: nginx:1.25.4-alpine
+    ports:
+      - '8000:80'
+    volumes:
+      - static:/static

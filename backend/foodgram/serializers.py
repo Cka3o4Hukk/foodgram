@@ -4,7 +4,7 @@ from rest_framework import serializers, validators
 from rest_framework.relations import SlugRelatedField
 
 from .models import Follow, Ingredient, Recipe, RecipeIngredients, Tag, User
-from users.models import AbstractUser
+from users.models import MyUser
 
 
 class Base64ImageField(serializers.ImageField):
@@ -18,6 +18,7 @@ class Base64ImageField(serializers.ImageField):
 
 class TagsSerializer(serializers.ModelSerializer):
     """Теги."""
+
     class Meta:
         model = Tag
         fields = '__all__'
@@ -48,7 +49,7 @@ class AbstractUserSerializer(serializers.ModelSerializer):
     avatar = serializers.SerializerMethodField()
 
     class Meta:
-        model = AbstractUser
+        model = MyUser
         fields = ['email', 'id', 'username', 'first_name', 'last_name',
                   'is_subscribed', 'avatar']
         extra_kwargs = {
@@ -62,16 +63,6 @@ class AbstractUserSerializer(serializers.ModelSerializer):
     def get_avatar(self, obj):
         """Возвращаем аватар, если он есть, иначе возвращаем None."""
         return obj.avatar.url if obj.avatar else None
-
-
-class AvatarSerializer(serializers.ModelSerializer):
-    """Аватар пользователя."""
-
-    avatar = Base64ImageField()
-
-    class Meta:
-        model = AbstractUser
-        fields = ['avatar']
 
 
 class RecipeSerializer(serializers.ModelSerializer):

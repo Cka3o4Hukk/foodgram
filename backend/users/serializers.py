@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from users.models import MyUser
+from foodgram.serializers import Base64ImageField
 
 
 from django.contrib.auth.hashers import make_password
@@ -14,7 +15,7 @@ class AbstractUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = MyUser
         fields = ['email', 'id', 'username', 'first_name', 'last_name',
-                  'is_subscribed', 'avatar', 'password']  # Добавлено поле password
+                  'is_subscribed', 'avatar', 'password']
         extra_kwargs = {
             'password': {'required': True},
             'email': {'required': True},
@@ -40,3 +41,21 @@ class AbstractUserSerializer(serializers.ModelSerializer):
         representation = super().to_representation(instance)
         representation.pop('password', None)
         return representation
+
+
+class AvatarSerializer(serializers.ModelSerializer):
+    """Аватар пользователя."""
+
+    avatar = Base64ImageField()
+
+    class Meta:
+        model = MyUser
+        fields = ['avatar']
+
+
+'''class UserSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = MyUser
+        fields = ['email', 'id', 'username', 'first_name', 'last_name',
+          'is_subscribed', 'avatar']'''
