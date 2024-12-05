@@ -1,0 +1,26 @@
+volumes:
+  static:
+
+services:
+
+  backend:
+    command: bash /app/startup.sh
+    container_name: food-back
+    build: ./backend/
+    volumes:
+      - static:/backend_static
+
+  frontend:
+    container_name: food-front
+    build: ./frontend/
+    command: cp -r /app/build/. /static/
+    volumes:
+      - static:/static
+
+  nginx:
+    container_name: food-proxy
+    build: ./nginx/
+    ports:
+      - 8080:80
+    volumes:
+      - static:/static
