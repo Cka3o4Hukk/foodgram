@@ -3,7 +3,7 @@ volumes:
 
 services:
   backend:
-    command: bash /app/startup.sh
+    #command: cp -r /app/collected_static/. /static/
     container_name: foodgram-back
     build: ./backend/
     volumes:
@@ -14,13 +14,15 @@ services:
     build: ./frontend/
     command: cp -r /app/build/. /static/
     volumes:
-      - static:/static
+      - static:/frontend_static
+    depends_on:
+      - backend
 
   nginx:
     container_name: foodgram-proxy
     build: ./nginx/
     ports:
-      - 8080:80
+      - 8000:80
     volumes:
       - static:/static
     depends_on:
