@@ -4,7 +4,8 @@ volumes:
 services:
 
   backend:
-    command: bash /app/startup.sh
+    #command: > 
+    #  bash -с "cp -r /app/collected_static/. /backend_static/static/"
     container_name: foodgram-back
     build: ./backend/
     volumes:
