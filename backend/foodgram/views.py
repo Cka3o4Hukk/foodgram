@@ -1,17 +1,14 @@
-from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
-from .models import Recipe, Ingredient, Tag, FavoriteRecipe, Follow
-from .serializers import (AbstractUserSerializer, FavoriteRecipeSerializer, FollowSerializer,
-    RecipeSerializer, IngredientsSerializer, TagsSerializer)
-from users.models import MyUser
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from rest_framework import viewsets
-from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated, AllowAny
-from djoser.serializers import UserSerializer
-from rest_framework import viewsets, status
 from django.shortcuts import get_object_or_404
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+from .models import Ingredient, FavoriteRecipe, Recipe, Tag  # Follow
+from .serializers import (
+    IngredientsSerializer, FavoriteRecipeSerializer,
+    RecipeSerializer, TagsSerializer)
+# AbstractUserSerializer, FollowSerializer
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -72,14 +69,16 @@ class TagViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post', 'delete'], url_path='subscribe')
     def subscribe(self, request, pk=None):
-        user_to_subscribe = self.get_object()  # Assuming you want to subscribe to a user identified by pk
+        user_to_subscribe = self.get_object()
         if request.method == 'POST':
             # Logic to create a subscription
-            Follow.objects.get_or_create(user=request.user, followed_user=user_to_subscribe)
+            Follow.objects.get_or_create(user=request.user,
+            followed_user=user_to_subscribe)
             return Response({'status': 'subscribed'})
         elif request.method == 'DELETE':
             # Logic to delete a subscription
-            Follow.objects.filter(user=request.user, followed_user=user_to_subscribe).delete()
+            Follow.objects.filter(user=request.user,
+            followed_user=user_to_subscribe).delete()
             return Response({'status': 'unsubscribed'})
 
 
