@@ -66,7 +66,7 @@ WSGI_APPLICATION = 'foodgram_main.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('POSTGRES_DB', 'foodgram_db'),
+        'NAME': os.getenv('POSTGRES_DB', 'foodgram'),
         'USER': os.getenv('POSTGRES_USER', 'foodgram_user'),
         'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'foodgram_password'),
         'HOST': os.getenv('POSTGRES_DB_HOST', 'foodgram-db-1'),
@@ -75,7 +75,7 @@ DATABASES = {
 }
 
 # Password validation
-# https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
+# https://docs.djangoproject.com/en/3.2/ref/settings/#auth-pdockerassword-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
