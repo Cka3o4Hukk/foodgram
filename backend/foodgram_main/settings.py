@@ -59,8 +59,9 @@ WSGI_APPLICATION = 'foodgram_main.wsgi.application'
 
 
 DATABASE_ENGINE = os.getenv('DATABASE_ENGINE', 'sqlite')  # По умолчанию SQLite
+USE_POSTGRES = os.getenv('USE_POSTGRES', 'False').lower() in ('true', '1', 't')
 
-if DATABASE_ENGINE == 'postgres':
+if USE_POSTGRES:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
