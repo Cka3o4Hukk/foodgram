@@ -2,7 +2,6 @@ import base64
 from django.core.files.base import ContentFile
 from rest_framework import serializers, validators
 from rest_framework.relations import SlugRelatedField
-
 from recipes.models import (Follow,
                             Ingredient, Recipe, RecipeIngredients, Tag, User)
 from users.models import MyUser
