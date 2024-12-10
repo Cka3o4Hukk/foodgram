@@ -1,19 +1,21 @@
 # from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticatedOrReadOnly  # , #AllowAny
 
-from .models import MyUser
 # from .permissions import AllowPostWithoutToken
-from .serializers import AbstractUserSerializer, AvatarSerializer
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from djoser.views import UserViewSet as DjoserUserViewSet
-from foodgram.serializers import RecipeSerializer
-from foodgram.models import Follow, Recipe
 from rest_framework import status
-
 from django.contrib.auth import get_user_model
 # from rest_framework.response import Response
+
+
+from api.serializers import RecipeSerializer
+from recipes.models import Follow, Recipe
+from .serializers import AbstractUserSerializer, AvatarSerializer
+from .models import MyUser
+
 
 User = get_user_model()
 

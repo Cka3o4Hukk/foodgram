@@ -4,8 +4,8 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .models import Ingredient, FavoriteRecipe, Recipe, Tag  # Follow
-from .serializers import (
+from recipes.models import Ingredient, FavoriteRecipe, Recipe, Tag  # Follow
+from api.serializers import (
     IngredientsSerializer, FavoriteRecipeSerializer,
     RecipeSerializer, TagsSerializer)
 # AbstractUserSerializer, FollowSerializer

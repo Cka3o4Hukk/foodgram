@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from users.models import MyUser
-from foodgram.serializers import Base64ImageField
+from api.serializers import Base64ImageField
 
 
 from django.contrib.auth.hashers import make_password
