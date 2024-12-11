@@ -58,7 +58,6 @@ WSGI_APPLICATION = 'foodgram_main.wsgi.application'
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
 
-DATABASE_ENGINE = os.getenv('DATABASE_ENGINE', 'sqlite')  # По умолчанию SQLite
 USE_POSTGRES = os.getenv('USE_POSTGRES', 'False').lower() in ('true', '1', 't')
 
 if USE_POSTGRES:

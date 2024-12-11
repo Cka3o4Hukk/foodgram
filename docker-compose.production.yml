@@ -1,0 +1,28 @@
+volumes:
+  pg_data_production:
+  static_volume:
+
+services:
+  db:
+    image: postgres:13.10
+    env_file: .env
+    volumes:
+      - pg_data_production:/var/lib/postgresql/data
+  backend:
+    image: ajiexdev/foodgram_backend
+    env_file: .env
+    volumes:
+      - static:/backend_static
+  frontend:
+    image: ajiexdev/foodgram_frontend
+    env_file: .env
+    command: cp -r /app/build/. /static/
+    volumes:
+      - static:/static
+  nginx:
+    image: ajiexdev/foodgram_nginx
+    env_file: .env
+    volumes:
+      - static:/static
+    ports:
+      - 8080:80

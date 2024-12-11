@@ -8,6 +8,8 @@ from users.models import MyUser
 
 
 class Base64ImageField(serializers.ImageField):
+    """Конвертация изображения."""
+
     def to_internal_value(self, data):
         if isinstance(data, str) and data.startswith('data:image'):
             format, imgstr = data.split(';base64,')
