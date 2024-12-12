@@ -1,9 +1,7 @@
 import base64
 from django.core.files.base import ContentFile
-from rest_framework import serializers, validators
-from rest_framework.relations import SlugRelatedField
-from recipes.models import (Follow,
-                            Ingredient, Recipe, RecipeIngredients, Tag, User)
+from rest_framework import serializers
+from recipes.models import (Ingredient, Recipe, RecipeIngredients, Tag)
 from users.models import MyUser
 
 
@@ -32,6 +30,14 @@ class IngredientsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ingredient
         fields = '__all__'
+
+
+class IngredientDetailSerializer(serializers.ModelSerializer):
+    """Сериализатор для всех полей ингредиентов."""
+
+    class Meta:
+        model = Ingredient
+        fields = ['id', 'name', 'measurement_unit']
 
 
 class RecipeIngredientsSerializer(serializers.ModelSerializer):
@@ -82,6 +88,8 @@ class RecipeSerializer(serializers.ModelSerializer):
             'author', 'ingredients', 'image', 'text', 'name', 'cooking_time']
 
     def create(self, validated_data):
+        """Метод для создания рецепта."""
+
         ingredients_data = validated_data.pop('ingredients')
         recipe = Recipe.objects.create(**validated_data)
         tags = Tag.objects.filter(id__in=self.initial_data.get('tags', []))
@@ -96,6 +104,22 @@ class RecipeSerializer(serializers.ModelSerializer):
             )
         return recipe
 
+    def to_representation(self, instance):
+        """Метод для отображения всех полей ингредиентов."""
+
+        representation = super().to_representation(instance)
+        representation['ingredients'] = [
+            {
+                'id': recipe_ingredient.ingredient.id,
+                'name': recipe_ingredient.ingredient.name,
+                'measurement_unit': recipe_ingredient.
+                ingredient.measurement_unit,
+                'amount': recipe_ingredient.amount
+            }
+            for recipe_ingredient in instance.ingredients.all()
+        ]
+        return representation
+
 
 class FavoriteRecipeSerializer(serializers.ModelSerializer):
     """Избранные рецепты."""
@@ -106,29 +130,23 @@ class FavoriteRecipeSerializer(serializers.ModelSerializer):
 
 
 class FollowSerializer(serializers.ModelSerializer):
-    """Подписки."""
+    """Кастомный пользователь."""
 
-    user = SlugRelatedField(
-        slug_field='username',
-        read_only=True,
-        default=serializers.CurrentUserDefault())
-    following = SlugRelatedField(
-        slug_field='username',
-        queryset=User.objects.all())
-
-    def validate_following(self, value):
-        """Проверка, что пользователь не может подписаться на себя."""
-        if self.context['request'].user == value:
-            raise serializers.ValidationError(
-                'Вы не можете подписаться на себя')
-        return value
+    avatar = serializers.SerializerMethodField()
+    recipes = RecipeSerializer(many=True, read_only=True)
 
     class Meta:
-        model = Follow
-        fields = ('user', 'following')
-        validators = [
-            validators.UniqueTogetherValidator(
-                queryset=Follow.objects.all(),
-                fields=('user', 'following')
-            )
-        ]
+        model = MyUser
+        fields = ['email', 'id', 'username', 'first_name', 'last_name',
+                  'is_subscribed', 'avatar', 'recipes']
+        extra_kwargs = {
+            'password': {'write_only': True},
+            'email': {'required': True},
+            'username': {'required': True},
+            'first_name': {'required': True},
+            'last_name': {'required': True},
+        }
+
+    def get_avatar(self, obj):
+        """Возвращаем аватар, если он есть, иначе возвращаем None."""
+        return obj.avatar.url if obj.avatar else None

@@ -1,23 +1,19 @@
-# from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticatedOrReadOnly  # , #AllowAny
-
-# from .permissions import AllowPostWithoutToken
-from rest_framework.decorators import action
-from rest_framework.response import Response
 
 from djoser.views import UserViewSet as DjoserUserViewSet
-from rest_framework import status
 from django.contrib.auth import get_user_model
-# from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.response import Response
 
-
-from api.serializers import RecipeSerializer
-from recipes.models import Follow, Recipe
+from api.serializers import FollowSerializer
+from recipes.models import Follow
 from .serializers import AbstractUserSerializer, AvatarSerializer
 from .models import MyUser
 
-
 User = get_user_model()
+
+HTTP_400 = status.HTTP_400_BAD_REQUEST
 
 
 class UserViewSet(DjoserUserViewSet):
@@ -35,8 +31,8 @@ class UserViewSet(DjoserUserViewSet):
             permission_classes=[IsAuthenticatedOrReadOnly])
     def update_avatar(self, request):
         """Добавление аватара текущего пользователя."""
-        user = request.user
 
+        user = request.user
         if request.method == 'PUT':
             serializer = AvatarSerializer(user, data=request.data)
             if serializer.is_valid():
@@ -53,23 +49,54 @@ class UserViewSet(DjoserUserViewSet):
 
     @action(detail=True, methods=['post', 'delete'], url_path='subscribe')
     def subscribe(self, request, id=None):
-        user_to_subscribe = self.get_object()
+        """Настройка подписки."""
+
+        SUBSCRIBE = Follow.objects.filter(
+            user=request.user,
+            following=self.get_object()
+        )
+
+        if request.user == self.get_object():
+            return Response(
+                {'error': 'Подписка и отписка от самого себя невозможнаа'},
+                status=HTTP_400
+            )
         if request.method == 'POST':
+            if SUBSCRIBE.exists():
+                return Response(
+                    {'error': 'Вы уже подписаны на этого пользователя'},
+                    status=HTTP_400
+                )
             Follow.objects.get_or_create(
                 user=request.user,
-                following=user_to_subscribe
+                following=self.get_object()
             )
-            serializer = AbstractUserSerializer(user_to_subscribe)
-            recipes = Recipe.objects.filter(author=user_to_subscribe)
-            recipes_serializer = RecipeSerializer(recipes, many=True)
+            return Response(
+                {'status': 'Вы успешно подписались на пользователя'})
 
-            return Response({
-                'user': serializer.data,
-                'recipes': recipes_serializer.data
-            }, status=status.HTTP_201_CREATED)
         elif request.method == 'DELETE':
-            Follow.objects.filter(
-                user=request.user,
-                following=user_to_subscribe
-            ).delete()
-            return Response({'status': 'unsubscribed'})
+            if not SUBSCRIBE.exists():
+                return Response(
+                    {'error': 'Вы не подписаны на этого пользователя'},
+                    status=HTTP_400
+                )
+            SUBSCRIBE.delete()
+            return Response(
+                {'status': 'Вы успешно отписались от пользователя'})
+
+    @action(detail=False, methods=['get'], url_path='subscriptions')
+    def subscriptions(self, request):
+        """Отображение подписок."""
+        if not request.user.is_authenticated:
+            return Response(
+                {'error': 'Пользователь не аутентифицирован'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        subscriptions = Follow.objects.filter(
+            user=request.user).select_related('following')
+        subscribed_users = [follow.following for follow in subscriptions]
+
+        serializer = FollowSerializer(subscribed_users, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)

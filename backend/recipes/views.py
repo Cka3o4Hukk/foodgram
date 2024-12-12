@@ -4,8 +4,8 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from recipes.models import Ingredient, FavoriteRecipe, Recipe, Tag  # Follow
-from api.serializers import (
+from recipes.models import Ingredient, FavoriteRecipe, Recipe, Tag, Follow
+from api.serializers import (FollowSerializer,
     IngredientsSerializer, FavoriteRecipeSerializer,
     RecipeSerializer, TagsSerializer)
 # AbstractUserSerializer, FollowSerializer
@@ -61,27 +61,32 @@ class TagViewSet(viewsets.ModelViewSet):
     serializer_class = TagsSerializer
 
 
-'''class SubscribeViewSet(viewsets.ModelViewSet):
+class SubscribeViewSet(viewsets.ModelViewSet):
     """Подписки."""
-    pass    @serializer_class = FollowSerializer
-    permission_classes = [AllowAny  ]
+    serializer_class = FollowSerializer
     queryset = Follow.objects.all()
 
     @action(detail=True, methods=['post', 'delete'], url_path='subscribe')
     def subscribe(self, request, pk=None):
+        print("Метод subscribe вызван")
         user_to_subscribe = self.get_object()
         if request.method == 'POST':
-            # Logic to create a subscription
-            Follow.objects.get_or_create(user=request.user,
-            followed_user=user_to_subscribe)
+            print('test')
+            print(request.user, 'и' ,user_to_subscribe)
+            if request.user == user_to_subscribe:
+                return Response(
+                    {'error': 'Вы не можете подписаться на себя'},
+                    status=status.HTTP_400_BAD_REQUEST)
+            Follow.objects.get_or_create(
+                user=request.user, followed_user=user_to_subscribe)
             return Response({'status': 'subscribed'})
         elif request.method == 'DELETE':
             # Logic to delete a subscription
-            Follow.objects.filter(user=request.user,
-            followed_user=user_to_subscribe).delete()
+            Follow.objects.filter(
+                user=request.user, followed_user=user_to_subscribe).delete()
             return Response({'status': 'unsubscribed'})
 
-
+'''
     subscribe.mapping.delete
     def unsubscribe(self, request, pk):
         user = request.user
