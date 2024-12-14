@@ -58,6 +58,16 @@ WSGI_APPLICATION = 'foodgram_main.wsgi.application'
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
 
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('POSTGRES_DB', 'db'),
+        'USER': os.getenv('POSTGRES_USER', 'foodgram_user'),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'foodgram_password'),
+        'HOST': os.getenv('POSTGRES_DB_HOST', 'foodgram-db'),
+        'PORT': os.getenv('POSTGRES_DB_PORT', '5432'),
+    }
+}
 '''USE_POSTGRES = os.getenv('USE_POSTGRES', 'False').lower() in ('true', '1', 't')
 
 if USE_POSTGRES:
@@ -78,12 +88,13 @@ else:
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }'''
-DATABASES = {
+'''DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+'''
 
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-pdockerassword-validators

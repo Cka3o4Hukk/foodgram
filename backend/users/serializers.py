@@ -51,11 +51,3 @@ class AvatarSerializer(serializers.ModelSerializer):
     class Meta:
         model = MyUser
         fields = ['avatar']
-
-
-'''class UserSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = MyUser
-        fields = ['email', 'id', 'username', 'first_name', 'last_name',
-          'is_subscribed', 'avatar']'''
