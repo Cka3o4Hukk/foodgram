@@ -1,15 +1,22 @@
 volumes:
   static:
-  sqlite_data:
+  pg_data:
 
 services:
+  db:
+    image: postgres:13.10
+    env_file: .env
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
   backend:
     container_name: foodgram-back
     build: ./backend/
     volumes:
-      - sqlite_data:/app/backend/db.sqlite3
       - static:/backend_static
     env_file: .env
+    depends_on:
+      - db
 
   frontend:
     container_name: foodgram-front
@@ -21,7 +28,7 @@ services:
   nginx:
     container_name: foodgram-proxy
     build: ./nginx/
-    ports:
-      - 8080:80
     volumes:
       - static:/static
+    ports:
+      - 8080:80

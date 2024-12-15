@@ -64,7 +64,7 @@ DATABASES = {
         'NAME': os.getenv('POSTGRES_DB', 'db'),
         'USER': os.getenv('POSTGRES_USER', 'foodgram_user'),
         'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'foodgram_password'),
-        'HOST': os.getenv('POSTGRES_DB_HOST', 'foodgram-db'),
+        'HOST': os.getenv('POSTGRES_DB_HOST', 'foodgram-db-1'),
         'PORT': os.getenv('POSTGRES_DB_PORT', '5432'),
     }
 }
