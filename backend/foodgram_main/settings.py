@@ -68,6 +68,7 @@ DATABASES = {
         'PORT': os.getenv('POSTGRES_DB_PORT', '5432'),
     }
 }
+
 '''USE_POSTGRES = os.getenv('USE_POSTGRES', 'False').lower() in ('true', '1', 't')
 
 if USE_POSTGRES:
