@@ -77,8 +77,6 @@ else:
         }
     }
 
-# Password validation
-# https://docs.djangoproject.com/en/3.2/ref/settings/#auth-pdockerassword-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
