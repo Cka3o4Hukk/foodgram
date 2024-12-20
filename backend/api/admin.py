@@ -1,7 +1,5 @@
 from django.contrib import admin
-from recipes.models import (FavoriteRecipe,  # Follow
-                            Ingredient, Recipe, Tag)
-# from users.models import MyUser
+from recipes.models import FavoriteRecipe, Ingredient, Recipe, Tag
 
 
 @admin.register(Tag)

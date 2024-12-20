@@ -1,7 +1,6 @@
-from django.db import models
 from django.contrib.auth import get_user_model
-from django.core.validators import (
-    MinValueValidator, RegexValidator)
+from django.core.validators import MinValueValidator, RegexValidator
+from django.db import models
 
 
 User = get_user_model()
@@ -24,12 +23,13 @@ class Tag(models.Model):
         verbose_name='Тег'
     )
 
-    def __str__(self):
-        return self.name
-
     class Meta:
         verbose_name = 'Тег'
         verbose_name_plural = 'Теги'
+        ordering = ['slug']
+
+    def __str__(self):
+        return self.name
 
 
 class Ingredient(models.Model):
@@ -40,15 +40,16 @@ class Ingredient(models.Model):
     )
     measurement_unit = models.CharField(
         max_length=64,
-        verbose_name='Единица измерения'
+        verbose_name='Единицы измерения'
     )
-
-    def __str__(self):
-        return f'{self.name} ({self.measurement_unit})'
 
     class Meta:
         verbose_name = 'Ингредиент'
         verbose_name_plural = 'Ингредиенты'
+        ordering = ['name']
+
+    def __str__(self):
+        return f'{self.name} ({self.measurement_unit})'
 
 
 class Recipe(models.Model):
@@ -62,6 +63,11 @@ class Recipe(models.Model):
         Tag,
         related_name='recipes',
         verbose_name='Тег'
+    )
+    ingredient = models.ManyToManyField(
+        Ingredient,
+        related_name='ingredients',
+        verbose_name='Ингредиент'
     )
     image = models.ImageField(
         upload_to='foodgram/recipes/images/',
@@ -81,12 +87,13 @@ class Recipe(models.Model):
         verbose_name='Время приготовления (мин)'
     )
 
-    def __str__(self):
-        return self.name
-
     class Meta:
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
 
 
 class RecipeIngredients(models.Model):
@@ -107,6 +114,7 @@ class RecipeIngredients(models.Model):
 
     class Meta:
         unique_together = ('recipe', 'ingredient')
+        ordering = ['recipe']
 
 
 class ShoppingCart(models.Model):
@@ -114,10 +122,14 @@ class ShoppingCart(models.Model):
         max_length=256,
         unique=True
     )
-    # image = ссылка на картинку на сайте
     cooking_time = models.PositiveIntegerField(
         validators=[MinValueValidator(1)]
     )
+
+    class Meta:
+        verbose_name = 'Список покупок'
+        verbose_name_plural = 'Списки покупок'
+        ordering = ['name']
 
     def __str__(self):
         return self.name
@@ -141,6 +153,7 @@ class FavoriteRecipe(models.Model):
         unique_together = ('user', 'recipe')
         verbose_name = 'Избранное'
         verbose_name_plural = 'Избранные'
+        ordering = ['recipe']
 
 
 class Follow(models.Model):
@@ -162,3 +175,4 @@ class Follow(models.Model):
                 name='unique_constraint'
             )
         ]
+        ordering = ['following']

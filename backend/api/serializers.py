@@ -1,8 +1,51 @@
 import base64
+
+from django.contrib.auth.hashers import make_password
 from django.core.files.base import ContentFile
 from rest_framework import serializers
-from recipes.models import (Ingredient, Recipe, RecipeIngredients, Tag)
-from users.models import MyUser
+
+from recipes.models import Ingredient, Recipe, RecipeIngredients, Tag
+from users.models import User
+
+
+MIN_VALUE_1 = 1
+MAX_VALUE_32000 = 32000
+
+
+class AbstractUserSerializer(serializers.ModelSerializer):
+    """Кастомный пользователь."""
+
+    avatar = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ['email', 'id', 'username', 'first_name', 'last_name',
+                  'is_subscribed', 'avatar', 'password']
+        extra_kwargs = {
+            'password': {'required': True},
+            'email': {'required': True},
+            'username': {'required': True},
+            'first_name': {'required': True},
+            'last_name': {'required': True},
+        }
+
+    def get_avatar(self, obj):
+        """Возвращаем аватар, если он есть, иначе возвращаем None."""
+        return obj.avatar.url if obj.avatar else None
+
+    def create(self, validated_data):
+        """Создаем пользователя с хешированным паролем."""
+        password = validated_data.pop('password')
+        user = User(**validated_data)
+        user.password = make_password(password)
+        user.save()
+        return user
+
+    def to_representation(self, instance):
+        """Не выводим пароль после удачного запроса."""
+        representation = super().to_representation(instance)
+        representation.pop('password', None)
+        return representation
 
 
 class Base64ImageField(serializers.ImageField):
@@ -14,6 +57,16 @@ class Base64ImageField(serializers.ImageField):
             ext = format.split('/')[-1]
             data = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
         return super().to_internal_value(data)
+
+
+class AvatarSerializer(serializers.ModelSerializer):
+    """Аватар пользователя."""
+
+    avatar = Base64ImageField()
+
+    class Meta:
+        model = User
+        fields = ['avatar']
 
 
 class TagsSerializer(serializers.ModelSerializer):
@@ -44,33 +97,14 @@ class RecipeIngredientsSerializer(serializers.ModelSerializer):
     """Рецепты, промежуточная модель."""
 
     id = serializers.IntegerField(source='ingredient.id')
-    amount = serializers.IntegerField()
+    amount = serializers.IntegerField(
+        max_value=MAX_VALUE_32000,
+        min_value=MIN_VALUE_1
+    )
 
     class Meta:
         model = RecipeIngredients
         fields = ['id', 'amount']
-
-
-class AbstractUserSerializer(serializers.ModelSerializer):
-    """Кастомный пользователь."""
-
-    avatar = serializers.SerializerMethodField()
-
-    class Meta:
-        model = MyUser
-        fields = ['email', 'id', 'username', 'first_name', 'last_name',
-                  'is_subscribed', 'avatar']
-        extra_kwargs = {
-            'password': {'write_only': True},
-            'email': {'required': True},
-            'username': {'required': True},
-            'first_name': {'required': True},
-            'last_name': {'required': True},
-        }
-
-    def get_avatar(self, obj):
-        """Возвращаем аватар, если он есть, иначе возвращаем None."""
-        return obj.avatar.url if obj.avatar else None
 
 
 class RecipeSerializer(serializers.ModelSerializer):
@@ -80,6 +114,10 @@ class RecipeSerializer(serializers.ModelSerializer):
     tags = TagsSerializer(many=True, read_only=True)
     author = AbstractUserSerializer(read_only=True)
     image = Base64ImageField()
+    cooking_time = serializers.IntegerField(
+        max_value=MAX_VALUE_32000,
+        min_value=MIN_VALUE_1
+    )
 
     class Meta:
         model = Recipe
@@ -89,20 +127,54 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         """Метод для создания рецепта."""
-
         ingredients_data = validated_data.pop('ingredients')
         recipe = Recipe.objects.create(**validated_data)
         tags = Tag.objects.filter(id__in=self.initial_data.get('tags', []))
         recipe.tags.set(tags)
-        for ingredient_data in ingredients_data:
-            RecipeIngredients.objects.create(
+        recipe_ingredients = [
+            RecipeIngredients(
                 recipe=recipe,
                 ingredient=Ingredient.objects.get(
-                    id=ingredient_data['ingredient']['id']
-                ),
+                    id=ingredient_data['ingredient']['id']),
                 amount=ingredient_data['amount']
             )
+            for ingredient_data in ingredients_data
+        ]
+
+        RecipeIngredients.objects.bulk_create(recipe_ingredients)
         return recipe
+
+    def update(self, instance, validated_data):
+        """Метод для обновления рецепта."""
+
+        ingredients_data = validated_data.pop('ingredients', None)
+        tags_data = self.initial_data.get('tags', [])
+
+        instance.name = validated_data.get('name', instance.name)
+        instance.text = validated_data.get('text', instance.text)
+        instance.image = validated_data.get('image', instance.image)
+        instance.cooking_time = validated_data.get('cooking_time',
+                                                   instance.cooking_time)
+        instance.save()
+
+        tags = Tag.objects.filter(id__in=tags_data)
+        instance.tags.set(tags)
+
+        if ingredients_data is not None:
+            instance.ingredients.all().delete()
+
+            recipe_ingredients = [
+                RecipeIngredients(
+                    recipe=instance,
+                    ingredient=Ingredient.objects.get(
+                        id=ingredient_data['ingredient']['id']),
+                    amount=ingredient_data['amount']
+                )
+                for ingredient_data in ingredients_data
+            ]
+            RecipeIngredients.objects.bulk_create(recipe_ingredients)
+
+        return instance
 
     def to_representation(self, instance):
         """Метод для отображения всех полей ингредиентов."""
@@ -136,7 +208,7 @@ class FollowSerializer(serializers.ModelSerializer):
     recipes = RecipeSerializer(many=True, read_only=True)
 
     class Meta:
-        model = MyUser
+        model = User
         fields = ['email', 'id', 'username', 'first_name', 'last_name',
                   'is_subscribed', 'avatar', 'recipes']
         extra_kwargs = {

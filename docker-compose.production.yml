@@ -1,6 +1,7 @@
 volumes:
-  static:
+  static_production:
   pg_data_production:
+  media_production:
 
 services:
   db:
@@ -12,18 +13,25 @@ services:
   backend:
     image: ajiexdev/foodgram_backend
     env_file: .env
+    depends_on:
+      - db
     volumes:
-      - static:/backend_static
+      - static_production:/back_static
+      - media_production:/media
+  
   frontend:
     image: ajiexdev/foodgram_frontend
-    env_file: .env
-    command: cp -r /app/build/. /static/
+    command: cp -r /app/build/. /frontend_static/
     volumes:
-      - static:/frontend_static
+      - static_production:/front_static
+
   nginx:
     image: ajiexdev/foodgram_nginx
     env_file: .env
+    depends_on:
+      - db
     volumes:
-      - static:/staticfiles
+      - static_production:/static_files
+      - media_production:/media
     ports:
       - 8080:80
