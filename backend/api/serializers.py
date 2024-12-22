@@ -8,19 +8,20 @@ from recipes.models import Ingredient, Recipe, RecipeIngredients, Tag
 from users.models import User
 
 
-MIN_VALUE_1 = 1
-MAX_VALUE_32000 = 32000
+MIN_VALUE = 1
+MAX_VALUE = 32000
 
 
 class AbstractUserSerializer(serializers.ModelSerializer):
     """Кастомный пользователь."""
 
     avatar = serializers.SerializerMethodField()
+    is_subscribed = serializers.BooleanField(default=False)
 
     class Meta:
         model = User
         fields = ['email', 'id', 'username', 'first_name', 'last_name',
-                  'is_subscribed', 'avatar', 'password']
+                  'avatar', 'is_subscribed', 'password']
         extra_kwargs = {
             'password': {'required': True},
             'email': {'required': True},
@@ -98,8 +99,8 @@ class RecipeIngredientsSerializer(serializers.ModelSerializer):
 
     id = serializers.IntegerField(source='ingredient.id')
     amount = serializers.IntegerField(
-        max_value=MAX_VALUE_32000,
-        min_value=MIN_VALUE_1
+        max_value=MAX_VALUE,
+        min_value=MIN_VALUE
     )
 
     class Meta:
@@ -115,19 +116,31 @@ class RecipeSerializer(serializers.ModelSerializer):
     author = AbstractUserSerializer(read_only=True)
     image = Base64ImageField()
     cooking_time = serializers.IntegerField(
-        max_value=MAX_VALUE_32000,
-        min_value=MIN_VALUE_1
+        max_value=MAX_VALUE,
+        min_value=MIN_VALUE
     )
+    is_favorited = serializers.SerializerMethodField()
+    is_in_shopping_cart = serializers.SerializerMethodField()
 
     class Meta:
         model = Recipe
-        fields = [
-            'id', 'tags',
-            'author', 'ingredients', 'image', 'text', 'name', 'cooking_time']
+        fields = ['id', 'tags', 'author', 'ingredients', 'image',
+                  'text', 'name', 'cooking_time', 'is_favorited',
+                  'is_in_shopping_cart']
+
+    def get_is_favorited(self, recipe):
+        user = self.context['request'].user
+        return recipe.favorites.filter(user=user).exists()
+
+    def get_is_in_shopping_cart(self, recipe):
+        user = self.context['request'].user
+        return recipe.favorites.filter(user=user).exists()
 
     def create(self, validated_data):
         """Метод для создания рецепта."""
         ingredients_data = validated_data.pop('ingredients')
+        validated_data.pop('is_favorited', None)
+        validated_data.pop('is_in_shopping_cart', None)
         recipe = Recipe.objects.create(**validated_data)
         tags = Tag.objects.filter(id__in=self.initial_data.get('tags', []))
         recipe.tags.set(tags)

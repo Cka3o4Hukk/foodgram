@@ -19,9 +19,6 @@ from .serializers import (
 from users.models import User
 
 
-HTTP_400 = status.HTTP_400_BAD_REQUEST
-
-
 class RecipeViewSet(viewsets.ModelViewSet):
     """Рецепты."""
     queryset = Recipe.objects.all()
@@ -33,10 +30,15 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
         serializer.save(author=self.request.user)
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        return context
+
     def retrieve(self, request, pk=None):
         """Создание короткой ссылки."""
-        recipe = Recipe.objects.get(pk=pk)
-        serializer = RecipeSerializer(recipe)
+
+        recipe = self.get_object()
+        serializer = self.get_serializer(recipe)
         short_link = f'http://127.0.0.1:8000/api/r/{recipe.id}'
         response_data = {
             'recipe': serializer.data,
@@ -78,12 +80,12 @@ class RecipeViewSet(viewsets.ModelViewSet):
             if not FAVORITE_RECIPE_EXISTS:
                 return Response(
                     {'detail': 'Вы уже удалили рецепт.'},
-                    status=status.status.HTTP_400_BAD_REQUEST
+                    status=status.HTTP_400_BAD_REQUEST
                 )
             FavoriteRecipe.objects.filter(user=user, recipe=recipe).delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=True, methods=['post', 'delete'], url_path='favorites')
+    @action(detail=True, methods=['post', 'delete'], url_path='favorite')
     def favorite(self, request, pk=None):
         return self.shopping_cart_and_favorite(request, pk)
 
@@ -128,12 +130,14 @@ class IngredientViewSet(viewsets.ModelViewSet):
     """Ингредиенты."""
     queryset = Ingredient.objects.all()
     serializer_class = IngredientsSerializer
+    #  http_method_names = ['get']
 
 
 class TagViewSet(viewsets.ModelViewSet):
     """Теги."""
     queryset = Tag.objects.all()
     serializer_class = TagsSerializer
+    #  http_method_names = ['get']  #для отладки убрать строчку
 
 
 class UserViewSet(DjoserUserViewSet):
@@ -141,12 +145,12 @@ class UserViewSet(DjoserUserViewSet):
     permission_classes = [IsAuthenticatedOrReadOnly]
     queryset = User.objects.all()
 
-    def list(self, request, *args, **kwargs):
-        """Метод для всех GET-запросов, выводит список пользователей."""
+    #  def list(self, request, *args, **kwargs):
+    #    """Метод для всех GET-запросов, выводит список пользователей."""
 
-        queryset = User.objects.all()
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+    #    queryset = User.objects.all()
+    #    serializer = self.get_serializer(queryset, many=True)
+    #    return Response(serializer.data)
 
     @action(detail=False, methods=['put', 'delete'], url_path='me/avatar',
             permission_classes=[IsAuthenticatedOrReadOnly])
@@ -180,13 +184,13 @@ class UserViewSet(DjoserUserViewSet):
         if request.user == self.get_object():
             return Response(
                 {'error': 'Подписка и отписка от самого себя невозможнаа'},
-                status=HTTP_400
+                status=status.HTTP_400_BAD_REQUEST
             )
         if request.method == 'POST':
             if SUBSCRIBE.exists():
                 return Response(
                     {'error': 'Вы уже подписаны на этого пользователя'},
-                    status=HTTP_400
+                    status=status.HTTP_400_BAD_REQUEST
                 )
             Follow.objects.get_or_create(
                 user=request.user,
@@ -199,7 +203,7 @@ class UserViewSet(DjoserUserViewSet):
             if not SUBSCRIBE.exists():
                 return Response(
                     {'error': 'Вы не подписаны на этого пользователя'},
-                    status=HTTP_400
+                    status=status.HTTP_400_BAD_REQUEST
                 )
             SUBSCRIBE.delete()
             return Response(

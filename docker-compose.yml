@@ -18,7 +18,7 @@ services:
       - db
     volumes:
       - static:/backend_static
-      - media:/app/media
+      - media:/media
   
   frontend:
     container_name: foodgram-front
@@ -36,7 +36,7 @@ services:
       - frontend
     volumes:
       - static:/staticfiles
-      - media:/app/media
+      - media:/media
     ports:
       - 8080:80
 

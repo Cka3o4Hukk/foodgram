@@ -55,9 +55,10 @@ TEMPLATES = [
 WSGI_APPLICATION = 'foodgram.wsgi.application'
 
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
-
-
+var = os.getenv('USE_POSTGRES')
+print('Перемення USE_POSTGRES', var)
 if os.getenv('USE_POSTGRES'):
+    print('Условие с пост грес')
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -69,6 +70,7 @@ if os.getenv('USE_POSTGRES'):
         }
     }
 else:
+    print('Условие с sqlite')
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -110,7 +112,7 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.TokenAuthentication',
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
-    'PAGE_SIZE': 6,
+    'PAGE_SIZE': 3,
 }
 
 DJOSER = {
