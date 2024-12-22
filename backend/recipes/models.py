@@ -118,21 +118,24 @@ class RecipeIngredients(models.Model):
 
 
 class ShoppingCart(models.Model):
-    name = models.CharField(
-        max_length=256,
-        unique=True
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='shoppingcart_recipes',
+        verbose_name='Автор рецепта'
     )
-    cooking_time = models.PositiveIntegerField(
-        validators=[MinValueValidator(1)]
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='shopping_cart',
+        verbose_name='Рецепт'
     )
 
     class Meta:
-        verbose_name = 'Список покупок'
-        verbose_name_plural = 'Списки покупок'
-        ordering = ['name']
-
-    def __str__(self):
-        return self.name
+        unique_together = ('user', 'recipe')
+        verbose_name = 'Список покупки'
+        verbose_name_plural = 'Список покупок'
+        ordering = ['recipe']
 
 
 class FavoriteRecipe(models.Model):
