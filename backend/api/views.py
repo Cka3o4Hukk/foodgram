@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 
-from recipes.models import Ingredient, FavoriteRecipe, Follow, Recipe, Tag
+from recipes.models import Ingredient, FavoriteRecipe, Follow, Recipe, ShoppingCart, Tag
 from .serializers import (
     AbstractUserSerializer,
     AvatarSerializer,
@@ -57,11 +57,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-    def shopping_cart_and_favorite(self, request, pk=None):
+    def shopping_cart_and_favorite(self, request, model, pk=None):
         """Добавление рецепта в избранное."""
         recipe = get_object_or_404(Recipe, pk=pk)
         user = request.user
-        FAVORITE_RECIPE_EXISTS = FavoriteRecipe.objects.filter(
+        FAVORITE_RECIPE_EXISTS = model.objects.filter(
             user=user,
             recipe=recipe
         ).exists()
@@ -72,9 +72,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
                     {'detail': 'Вы уже добавили рецепт.'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            FavoriteRecipe.objects.get_or_create(user=user, recipe=recipe)
-            serializer = FavoriteRecipeSerializer(recipe)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            model.objects.get_or_create(user=user, recipe=recipe)
+            return Response(status=status.HTTP_201_CREATED)
 
         elif request.method == 'DELETE':
             if not FAVORITE_RECIPE_EXISTS:
@@ -82,19 +81,20 @@ class RecipeViewSet(viewsets.ModelViewSet):
                     {'detail': 'Вы уже удалили рецепт.'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            FavoriteRecipe.objects.filter(user=user, recipe=recipe).delete()
+            model.objects.filter(user=user, recipe=recipe).delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=True, methods=['post', 'delete'], url_path='favorite')
+    @action(detail=True, methods=['post', 'delete'],
+            serializer_class=FavoriteRecipeSerializer)
     def favorite(self, request, pk=None):
-        return self.shopping_cart_and_favorite(request, pk)
+        return self.shopping_cart_and_favorite(request, FavoriteRecipe, pk)
 
-    @action(detail=True, methods=['post', 'delete'], url_path='shopping_cart')
+    @action(detail=True, methods=['post', 'delete'])
     def shopping_cart(self, request, pk=None):
-        return self.shopping_cart_and_favorite(request, pk)
+        return self.shopping_cart_and_favorite(request, ShoppingCart, pk)
 
-    @action(detail=False, methods=['get'], url_path='download_shopping_cart')
-    def download_recipe(self, request):
+    @action(detail=False, methods=['get'])
+    def download_shopping_cart(self, request):
         recipes = self.queryset
         ingredient_totals = {}
 

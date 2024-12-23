@@ -120,8 +120,8 @@ class RecipeSerializer(serializers.ModelSerializer):
         min_value=MIN_VALUE
     )
     is_favorited = serializers.SerializerMethodField()
-    is_in_shopping_cart = serializers.SerializerMethodField()
-    #is_in_shopping_cart = serializers.BooleanField(default=False)
+    #is_in_shopping_cart = serializers.SerializerMethodField()
+    is_in_shopping_cart = serializers.BooleanField(default=False)
 
     class Meta:
         model = Recipe
@@ -133,9 +133,9 @@ class RecipeSerializer(serializers.ModelSerializer):
         user = self.context['request'].user
         return recipe.favorites.filter(user=user).exists()
 
-    def get_in_shopping_cart(self, recipe):
-        user = self.context['request'].user
-        return recipe.shopping_cart.filter(user=user).exists()
+    #def get_in_shopping_cart(self, recipe):
+    #    user = self.context['request'].user
+    #    return recipe.shopping_cart.filter(user=user).exists()
 
     def create(self, validated_data):
         """Метод для создания рецепта."""
