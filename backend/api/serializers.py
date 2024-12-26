@@ -4,6 +4,7 @@ from django.contrib.auth.hashers import make_password
 from django.core.files.base import ContentFile
 from rest_framework import serializers
 
+from .validators import validate_ingredients, validate_tags
 from recipes.models import Ingredient, Recipe, RecipeIngredients, Tag
 from users.models import User
 
@@ -70,8 +71,13 @@ class AvatarSerializer(serializers.ModelSerializer):
         fields = ['avatar']
 
 
-class TagsSerializer(serializers.ModelSerializer):
+class TagSerializer(serializers.ModelSerializer):
     """Теги."""
+
+    def validate_tag_exists(value):
+        if not Tag.objects.filter(id=value).exists():
+            raise serializers.ValidationError("Тег с указанным ID не найден.")
+        return value
 
     class Meta:
         model = Tag
@@ -112,7 +118,8 @@ class RecipeSerializer(serializers.ModelSerializer):
     """Рецепты, основная модель."""
 
     ingredients = RecipeIngredientsSerializer(many=True, required=True)
-    tags = TagsSerializer(many=True, read_only=True)
+    tags = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=Tag.objects.all(), write_only=True)  
     author = AbstractUserSerializer(read_only=True)
     image = Base64ImageField()
     cooking_time = serializers.IntegerField(
@@ -120,8 +127,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         min_value=MIN_VALUE
     )
     is_favorited = serializers.SerializerMethodField()
-    #is_in_shopping_cart = serializers.SerializerMethodField()
-    is_in_shopping_cart = serializers.BooleanField(default=False)
+    is_in_shopping_cart = serializers.SerializerMethodField()
 
     class Meta:
         model = Recipe
@@ -130,21 +136,28 @@ class RecipeSerializer(serializers.ModelSerializer):
                   'is_in_shopping_cart']
 
     def get_is_favorited(self, recipe):
-        user = self.context['request'].user
-        return recipe.favorites.filter(user=user).exists()
+        user = self.context['request'].user  # user.id для анонима = None
+        return recipe.favorites.filter(user=user.id).exists()
 
-    #def get_in_shopping_cart(self, recipe):
-    #    user = self.context['request'].user
-    #    return recipe.shopping_cart.filter(user=user).exists()
+    def get_is_in_shopping_cart(self, recipe):
+        user = self.context['request'].user
+        return recipe.shopping_cart.filter(user=user.id).exists()
+
+    def validate_tags(self, value):
+        """Проверка на пустой список тегов."""
+        return validate_tags(value)
+
+    def validate_ingredients(self, value):
+        """Проверка на пустой список ингредиентов."""
+        return validate_ingredients(value)
 
     def create(self, validated_data):
         """Метод для создания рецепта."""
         ingredients_data = validated_data.pop('ingredients')
-        validated_data.pop('is_favorited', None)
-        validated_data.pop('is_in_shopping_cart', None)
+        tags_data = validated_data.pop('tags', [])
+
         recipe = Recipe.objects.create(**validated_data)
-        tags = Tag.objects.filter(id__in=self.initial_data.get('tags', []))
-        recipe.tags.set(tags)
+        recipe.tags.set(tags_data)
         recipe_ingredients = [
             RecipeIngredients(
                 recipe=recipe,
@@ -194,6 +207,8 @@ class RecipeSerializer(serializers.ModelSerializer):
         """Метод для отображения всех полей ингредиентов."""
 
         representation = super().to_representation(instance)
+        representation['tags'] = TagSerializer(
+            instance.tags.all(), many=True).data
         representation['ingredients'] = [
             {
                 'id': recipe_ingredient.ingredient.id,

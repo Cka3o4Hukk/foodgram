@@ -1,12 +1,17 @@
 from django.http import HttpResponse
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserUserViewSet
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 
-from recipes.models import Ingredient, FavoriteRecipe, Follow, Recipe, ShoppingCart, Tag
+from recipes.models import (Ingredient, FavoriteRecipe, Follow,
+                            Recipe, ShoppingCart, Tag)
+from rest_framework import filters
+
+from .filters import RecipeFilter
 from .serializers import (
     AbstractUserSerializer,
     AvatarSerializer,
@@ -14,7 +19,7 @@ from .serializers import (
     FollowSerializer,
     IngredientsSerializer,
     RecipeSerializer,
-    TagsSerializer
+    TagSerializer
 )
 from users.models import User
 
@@ -24,38 +29,39 @@ class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter,]
+    filterset_class = RecipeFilter
 
     def perform_create(self, serializer):
         """Создание рецепта, привязка автора."""
-
         serializer.save(author=self.request.user)
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
         return context
 
-    def retrieve(self, request, pk=None):
-        """Создание короткой ссылки."""
+    # def retrieve(self, request, pk=None):
+    #     """Создание короткой ссылки."""
 
-        recipe = self.get_object()
-        serializer = self.get_serializer(recipe)
-        short_link = f'http://127.0.0.1:8000/api/r/{recipe.id}'
-        response_data = {
-            'recipe': serializer.data,
-            'short_link': short_link
-        }
-        return Response(response_data, status=status.HTTP_200_OK)
+    #     recipe = self.get_object()
+    #     serializer = self.get_serializer(recipe)
+    #     short_link = f'http://127.0.0.1:8000/api/r/{recipe.id}'
+    #     response_data = {
+    #         'recipe': serializer.data,
+    #         'short_link': short_link
+    #     }
+    #     return Response(response_data, status=status.HTTP_200_OK)
 
-    def short_link_redirect(self, request, recipe_id):
-        """Преобразование короткой ссылки в действующую."""
-        try:
-            recipe = Recipe.objects.get(id=recipe_id)
-            return redirect(f'http://127.0.0.1:8000/api/recipes/{recipe.id}/')
-        except Recipe.DoesNotExist:
-            return Response(
-                {'error': 'Рецепт не найден'},
-                status=status.HTTP_404_NOT_FOUND
-            )
+    # def short_link_redirect(self, request, recipe_id):
+    #     """Преобразование короткой ссылки в действующую."""
+    #     try:
+    #         recipe = Recipe.objects.get(id=recipe_id)
+    #         return redirect(f'http://127.0.0.1:8000/api/recipes/{recipe.id}/')
+    #     except Recipe.DoesNotExist:
+    #         return Response(
+    #             {'error': 'Рецепт не найден'},
+    #             status=status.HTTP_404_NOT_FOUND
+    #         )
 
     def shopping_cart_and_favorite(self, request, model, pk=None):
         """Добавление рецепта в избранное."""
@@ -130,27 +136,22 @@ class IngredientViewSet(viewsets.ModelViewSet):
     """Ингредиенты."""
     queryset = Ingredient.objects.all()
     serializer_class = IngredientsSerializer
-    #  http_method_names = ['get']
+    pagination_class = None
+    http_method_names = ['get']
 
 
 class TagViewSet(viewsets.ModelViewSet):
     """Теги."""
     queryset = Tag.objects.all()
-    serializer_class = TagsSerializer
-    #  http_method_names = ['get']  #для отладки убрать строчку
+    serializer_class = TagSerializer
+    pagination_class = None
+    http_method_names = ['get']  #для отладки убрать строчку
 
 
 class UserViewSet(DjoserUserViewSet):
     serializer_class = AbstractUserSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
     queryset = User.objects.all()
-
-    #  def list(self, request, *args, **kwargs):
-    #    """Метод для всех GET-запросов, выводит список пользователей."""
-
-    #    queryset = User.objects.all()
-    #    serializer = self.get_serializer(queryset, many=True)
-    #    return Response(serializer.data)
 
     @action(detail=False, methods=['put', 'delete'], url_path='me/avatar',
             permission_classes=[IsAuthenticatedOrReadOnly])
@@ -197,7 +198,8 @@ class UserViewSet(DjoserUserViewSet):
                 following=self.get_object()
             )
             return Response(
-                {'status': 'Вы успешно подписались на пользователя'})
+                {'status': 'Вы успешно подписались на пользователя'},
+                status=status.HTTP_201_CREATED)
 
         elif request.method == 'DELETE':
             if not SUBSCRIBE.exists():
@@ -207,7 +209,8 @@ class UserViewSet(DjoserUserViewSet):
                 )
             SUBSCRIBE.delete()
             return Response(
-                {'status': 'Вы успешно отписались от пользователя'})
+                {'status': 'Вы успешно отписались от пользователя'},
+                status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=['get'], url_path='subscriptions')
     def subscriptions(self, request):
