@@ -13,6 +13,4 @@ router.register(r'users', UserViewSet, basename='users')
 urlpatterns = [
     path('', include(router.urls)),
     path('auth/', include('djoser.urls.authtoken')),
-    path('r/<int:recipe_id>/', RecipeViewSet.as_view(
-        {'get': 'short_link_redirect'}), name='short-link-redirect'),
 ]

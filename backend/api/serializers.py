@@ -144,11 +144,13 @@ class RecipeSerializer(serializers.ModelSerializer):
         return recipe.shopping_cart.filter(user=user.id).exists()
 
     def validate_tags(self, value):
-        """Проверка на пустой список тегов."""
+        """Проверка списка тегов."""
+
         return validate_tags(value)
 
     def validate_ingredients(self, value):
-        """Проверка на пустой список ингредиентов."""
+        """Проверка списка ингредиентов."""
+
         return validate_ingredients(value)
 
     def create(self, validated_data):
@@ -173,9 +175,18 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         """Метод для обновления рецепта."""
+        if 'ingredients' not in validated_data:
+            raise serializers.ValidationError(
+                {"ingredients": "Не передан список ингредиентов."}
+            )
 
-        ingredients_data = validated_data.pop('ingredients', None)
-        tags_data = self.initial_data.get('tags', [])
+        if 'tags' not in validated_data:
+            raise serializers.ValidationError(
+                {"tags": "Не передан список тегов."}
+            )
+
+        ingredients_data = validated_data.pop('ingredients')
+        tags_data = validated_data.pop('tags')
 
         instance.name = validated_data.get('name', instance.name)
         instance.text = validated_data.get('text', instance.text)
@@ -184,12 +195,16 @@ class RecipeSerializer(serializers.ModelSerializer):
                                                    instance.cooking_time)
         instance.save()
 
-        tags = Tag.objects.filter(id__in=tags_data)
-        instance.tags.set(tags)
+        # Обновляем теги, если они были переданы
+        if tags_data is not None:
+            instance.tags.set(tags_data)
 
+        # Обновляем ингредиенты
         if ingredients_data is not None:
+            # Удаляем старые ингредиенты
             instance.ingredients.all().delete()
 
+            # Создаем новые ингредиенты
             recipe_ingredients = [
                 RecipeIngredients(
                     recipe=instance,
