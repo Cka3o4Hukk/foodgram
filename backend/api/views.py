@@ -56,7 +56,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     #     """Преобразование короткой ссылки в действующую."""
     #     try:
     #         recipe = Recipe.objects.get(id=recipe_id)
-    #         return redirect(f'http://127.0.0.1:8000/api/recipes/{recipe.id}/')
+    #        return redirect(f'http://127.0.0.1:8000/api/recipes/{recipe.id}/')
     #     except Recipe.DoesNotExist:
     #         return Response(
     #             {'error': 'Рецепт не найден'},
@@ -145,7 +145,7 @@ class TagViewSet(viewsets.ModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
     pagination_class = None
-    http_method_names = ['get']  #для отладки убрать строчку
+    http_method_names = ['get']  # для отладки убрать строчку
 
 
 class UserViewSet(DjoserUserViewSet):
