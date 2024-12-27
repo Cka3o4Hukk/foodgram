@@ -12,6 +12,7 @@ from recipes.models import (Ingredient, FavoriteRecipe, Follow,
 from rest_framework import filters
 
 from .filters import RecipeFilter
+from .permissions import IsAuthorOrReadOnly
 from .serializers import (
     AbstractUserSerializer,
     AvatarSerializer,
@@ -28,38 +29,13 @@ class RecipeViewSet(viewsets.ModelViewSet):
     """Рецепты."""
     queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsAuthorOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter,]
     filterset_class = RecipeFilter
 
     def perform_create(self, serializer):
         """Создание рецепта, привязка автора."""
         serializer.save(author=self.request.user)
-
-    def chech_author_method(self, request, *args, **kwargs):
-        recipe = self.get_object()
-
-        if recipe.author != request.user:
-            return Response(
-                {"detail": "У вас недостаточно прав"},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        return recipe
-
-    def update(self, request, *args, **kwargs):
-        response = self.chech_author_method(request, *args, **kwargs)
-        if isinstance(response, Response):
-            return response
-
-        return super().update(request, *args, **kwargs)
-
-    def destroy(self, request, *args, **kwargs):
-        recipe = self.chech_author_method(request, *args, **kwargs)
-        if isinstance(recipe, Response):
-            return recipe
-
-        self.perform_destroy(recipe)
-        return Response(status=status.HTTP_204_NO_CONTENT)
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -224,9 +200,21 @@ class UserViewSet(DjoserUserViewSet):
                 user=request.user,
                 following=self.get_object()
             )
+            latest_user = self.get_object()
             return Response(
-                {'status': 'Вы успешно подписались на пользователя'},
-                status=status.HTTP_201_CREATED)
+                {
+                    'status': 'Вы успешно подписались на пользователя',
+                    'user': {
+                        'id': latest_user.id,
+                        'first_name': latest_user.first_name,
+                        'last_name': latest_user.last_name,
+                        # 'cooking_time': latest_user.cooking_time
+                        # 'description': latest_recipe.description,
+                        # Add other fields as necessary
+                    }
+                },
+                status=status.HTTP_201_CREATED
+            )
 
         elif request.method == 'DELETE':
             if not SUBSCRIBE.exists():

@@ -143,18 +143,19 @@ class RecipeSerializer(serializers.ModelSerializer):
         user = self.context['request'].user
         return recipe.shopping_cart.filter(user=user.id).exists()
 
-    def validate_tags(self, value):
+    def validate_tags(self, data):
         """Проверка списка тегов."""
 
-        return validate_tags(value)
+        return validate_tags(data)
 
-    def validate_ingredients(self, value):
+    def validate_ingredients(self, data):
         """Проверка списка ингредиентов."""
 
-        return validate_ingredients(value)
+        return validate_ingredients(data)
 
     def create(self, validated_data):
         """Метод для создания рецепта."""
+
         ingredients_data = validated_data.pop('ingredients')
         tags_data = validated_data.pop('tags', [])
 
@@ -175,6 +176,7 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         """Метод для обновления рецепта."""
+
         if 'ingredients' not in validated_data:
             raise serializers.ValidationError(
                 {"ingredients": "Не передан список ингредиентов."}
@@ -188,11 +190,6 @@ class RecipeSerializer(serializers.ModelSerializer):
         ingredients_data = validated_data.pop('ingredients')
         tags_data = validated_data.pop('tags')
 
-        instance.name = validated_data.get('name', instance.name)
-        instance.text = validated_data.get('text', instance.text)
-        instance.image = validated_data.get('image', instance.image)
-        instance.cooking_time = validated_data.get('cooking_time',
-                                                   instance.cooking_time)
         instance.save()
 
         # Обновляем теги, если они были переданы

@@ -2,29 +2,29 @@ from rest_framework import serializers
 from recipes.models import Ingredient
 
 
-def validate_empty_list(value, message):
+def validate_empty_list(data, message):
     """Базовая проверка пустого списка"""
 
-    if not value:
+    if not data:
         raise serializers.ValidationError(message)
 
 
-def validate_tags(value):
+def validate_tags(data):
     """Проверка валидации тегов."""
 
-    validate_empty_list(value, "Список тегов не может быть пустым")
+    validate_empty_list(data, "Список тегов не может быть пустым")
 
-    if len(set(value)) != len(value):
+    if len(set(data)) != len(data):
         raise serializers.ValidationError("Не должно быть дубликатов.")
-    return value
+    return data
 
 
-def validate_ingredients(value):
+def validate_ingredients(data):
     """Проверка валидации ингредиентов."""
 
-    validate_empty_list(value, "Список ингредиентов не может быть пустым")
+    validate_empty_list(data, "Список ингредиентов не может быть пустым")
 
-    list_id = [i['ingredient']['id'] for i in value]
+    list_id = [i['ingredient']['id'] for i in data]
 
     existing_ingredients = Ingredient.objects.filter(
         id__in=list_id).values_list('id', flat=True)
@@ -38,4 +38,4 @@ def validate_ingredients(value):
 
     if len(set(list_id)) != len(list_id):
         raise serializers.ValidationError("Не должно быть дубликатов.")
-    return value
+    return data
