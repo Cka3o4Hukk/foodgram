@@ -4,7 +4,8 @@ from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserUserViewSet
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.permissions import (IsAuthenticatedOrReadOnly,
+                                        IsAuthenticated)
 from rest_framework.response import Response
 
 from recipes.models import (Ingredient, FavoriteRecipe, Follow,
@@ -40,18 +41,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def get_serializer_context(self):
         context = super().get_serializer_context()
         return context
-
-    # def retrieve(self, request, pk=None):
-    #     """Создание короткой ссылки."""
-
-    #     recipe = self.get_object()
-    #     serializer = self.get_serializer(recipe)
-    #     short_link = f'http://127.0.0.1:8000/api/r/{recipe.id}'
-    #     response_data = {
-    #         'recipe': serializer.data,
-    #         'short_link': short_link
-    #     }
-    #     return Response(response_data, status=status.HTTP_200_OK)
 
     # def short_link_redirect(self, request, recipe_id):
     #     """Преобразование короткой ссылки в действующую."""
@@ -90,6 +79,20 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 )
             model.objects.filter(user=user, recipe=recipe).delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=['get'], url_path='get-link')
+    def get_link(self, request, pk=None):
+        recipe = self.get_object()
+        print('Рецепт', recipe)
+        # serializer = self.get_serializer(recipe)
+        print('Сериализатор', recipe)
+        short_link = f'http://127.0.0.1:8000/api/r/{recipe.id}'
+        print('Короткая ссылка', short_link)
+        # response_data = {
+        # 'recipe': serializer.data,
+        #    'short_link': short_link
+        # }
+        return Response(short_link, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post', 'delete'],
             serializer_class=FavoriteRecipeSerializer)
@@ -155,6 +158,13 @@ class UserViewSet(DjoserUserViewSet):
     serializer_class = AbstractUserSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
     queryset = User.objects.all()
+
+    @action(detail=False, methods=['get'], url_path='me',
+            permission_classes=[IsAuthenticated])
+    def get_me(self, request):
+        """Получение информации о текущем пользователе."""
+        serializer = self.get_serializer(request.user)
+        return Response(serializer.data)
 
     @action(detail=False, methods=['put', 'delete'], url_path='me/avatar',
             permission_classes=[IsAuthenticatedOrReadOnly])
