@@ -33,10 +33,12 @@ class AbstractUserSerializer(serializers.ModelSerializer):
 
     def get_avatar(self, obj):
         """Возвращаем аватар, если он есть, иначе возвращаем None."""
+
         return obj.avatar.url if obj.avatar else None
 
     def create(self, validated_data):
         """Создаем пользователя с хешированным паролем."""
+
         password = validated_data.pop('password')
         user = User(**validated_data)
         user.password = make_password(password)
@@ -45,6 +47,7 @@ class AbstractUserSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         """Не выводим пароль после удачного запроса."""
+
         representation = super().to_representation(instance)
         representation.pop('password', None)
         return representation

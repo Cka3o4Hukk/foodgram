@@ -42,16 +42,12 @@ class RecipeViewSet(viewsets.ModelViewSet):
         context = super().get_serializer_context()
         return context
 
-    # def short_link_redirect(self, request, recipe_id):
-    #     """Преобразование короткой ссылки в действующую."""
-    #     try:
-    #         recipe = Recipe.objects.get(id=recipe_id)
-    #        return redirect(f'http://127.0.0.1:8000/api/recipes/{recipe.id}/')
-    #     except Recipe.DoesNotExist:
-    #         return Response(
-    #             {'error': 'Рецепт не найден'},
-    #             status=status.HTTP_404_NOT_FOUND
-    #         )
+    @action(detail=True, methods=['get'], url_path='get-link')
+    def get_link(self, request, pk=None):
+        return Response(
+            {'short-link': f'000/api/test-uoi/{pk}'},
+            status=status.HTTP_200_OK
+        )
 
     def shopping_cart_and_favorite(self, request, model, pk=None):
         """Добавление рецепта в избранное."""
@@ -79,20 +75,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 )
             model.objects.filter(user=user, recipe=recipe).delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
-
-    @action(detail=True, methods=['get'], url_path='get-link')
-    def get_link(self, request, pk=None):
-        recipe = self.get_object()
-        print('Рецепт', recipe)
-        # serializer = self.get_serializer(recipe)
-        print('Сериализатор', recipe)
-        short_link = f'http://127.0.0.1:8000/api/r/{recipe.id}'
-        print('Короткая ссылка', short_link)
-        # response_data = {
-        # 'recipe': serializer.data,
-        #    'short_link': short_link
-        # }
-        return Response(short_link, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post', 'delete'],
             serializer_class=FavoriteRecipeSerializer)
