@@ -33,7 +33,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
     permission_classes = [IsAuthorOrReadOnly]
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter,]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_class = RecipeFilter
 
     def perform_create(self, serializer):
