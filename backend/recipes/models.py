@@ -50,6 +50,9 @@ class Ingredient(models.Model):
         return f'{self.name} ({self.measurement_unit})'
 
 
+BASE_URL = '127.0.0.1'
+
+
 class Recipe(models.Model):
     author = models.ForeignKey(
         User,
@@ -68,7 +71,7 @@ class Recipe(models.Model):
         verbose_name='Ингредиент'
     )
     image = models.ImageField(
-        upload_to='foodgram/recipes/images/',
+        upload_to=f'{BASE_URL}/recipes/images/',
         verbose_name='Изображение'
     )
     name = models.CharField(
@@ -158,22 +161,22 @@ class FavoriteRecipe(models.Model):
 
 
 class Follow(models.Model):
-    user = models.ForeignKey(
+    author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='users'
+        related_name='subscribers'
     )
-    following = models.ForeignKey(
+    subscriber = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='following'
+        related_name='idols'
     )
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=('user', 'following'),
+                fields=('author', 'subscriber'),
                 name='unique_constraint'
             )
         ]
-        ordering = ['following']
+        ordering = ['subscriber']

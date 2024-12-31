@@ -4,10 +4,11 @@ from django.db import models
 
 class User(AbstractUser):
     email = models.EmailField(unique=True)
-    is_subscribed = models.BooleanField(default=False)
     avatar = models.ImageField(
-        upload_to='users/images/',
+        upload_to='users/',
     )
+    first_name = models.CharField(max_length=150)
+    last_name = models.CharField(max_length=150)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', 'first_name', 'last_name']

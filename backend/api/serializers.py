@@ -1,56 +1,42 @@
 import base64
 
-from django.contrib.auth.hashers import make_password
+from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
 from rest_framework import serializers
+from djoser.serializers import (
+    UserCreateSerializer as DjoserUserCreateSerializer)
+from djoser.serializers import UserSerializer as DjoserUserSerializer
 
+from recipes.models import Ingredient, Recipe, RecipeIngredients, Tag, Follow
 from .validators import validate_ingredients, validate_tags
-from recipes.models import Ingredient, Recipe, RecipeIngredients, Tag
-from users.models import User
 
+User = get_user_model()
 
 MIN_VALUE = 1
 MAX_VALUE = 32000
 
 
-class AbstractUserSerializer(serializers.ModelSerializer):
-    """Кастомный пользователь."""
-
-    avatar = serializers.SerializerMethodField()
-    is_subscribed = serializers.BooleanField(default=False)
+class UserCreateSerializer(DjoserUserCreateSerializer):
 
     class Meta:
         model = User
         fields = ['email', 'id', 'username', 'first_name', 'last_name',
-                  'avatar', 'is_subscribed', 'password']
-        extra_kwargs = {
-            'password': {'required': True},
-            'email': {'required': True},
-            'username': {'required': True},
-            'first_name': {'required': True},
-            'last_name': {'required': True},
-        }
+                  'password']
 
-    def get_avatar(self, obj):
-        """Возвращаем аватар, если он есть, иначе возвращаем None."""
 
-        return obj.avatar.url if obj.avatar else None
+class UserSerializer(DjoserUserSerializer):
+    is_subscribed = serializers.SerializerMethodField()
 
-    def create(self, validated_data):
-        """Создаем пользователя с хешированным паролем."""
+    class Meta:
+        model = User
+        fields = ['email', 'id', 'username', 'first_name', 'last_name',
+                  'is_subscribed','avatar']
 
-        password = validated_data.pop('password')
-        user = User(**validated_data)
-        user.password = make_password(password)
-        user.save()
-        return user
-
-    def to_representation(self, instance):
-        """Не выводим пароль после удачного запроса."""
-
-        representation = super().to_representation(instance)
-        representation.pop('password', None)
-        return representation
+    def get_is_subscribed(self, author):
+        user = self.context['request'].user
+        if not user.is_authenticated:
+            return False
+        return Follow.objects.filter(author=author, subscriber=user).exists()
 
 
 class Base64ImageField(serializers.ImageField):
@@ -87,7 +73,7 @@ class TagSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class IngredientsSerializer(serializers.ModelSerializer):
+class IngredientSerializer(serializers.ModelSerializer):
     """Ингредиенты."""
 
     class Meta:
@@ -123,7 +109,7 @@ class RecipeSerializer(serializers.ModelSerializer):
     ingredients = RecipeIngredientsSerializer(many=True, required=True)
     tags = serializers.PrimaryKeyRelatedField(
         many=True, queryset=Tag.objects.all(), write_only=True)
-    author = AbstractUserSerializer(read_only=True)
+    author = UserSerializer(read_only=True)
     image = Base64ImageField()
     cooking_time = serializers.IntegerField(
         max_value=MAX_VALUE,
@@ -237,7 +223,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         return representation
 
 
-class FavoriteRecipeSerializer(serializers.ModelSerializer):
+class ShortRecipeSerializer(serializers.ModelSerializer):
     """Избранные рецепты."""
 
     class Meta:
@@ -249,19 +235,12 @@ class FollowSerializer(serializers.ModelSerializer):
     """Кастомный пользователь."""
 
     avatar = serializers.SerializerMethodField()
-    recipes = RecipeSerializer(many=True, read_only=True)
+    #  recipes = ShortRecipeSerializer(many=True, read_only=True)
 
     class Meta:
         model = User
         fields = ['email', 'id', 'username', 'first_name', 'last_name',
-                  'is_subscribed', 'avatar', 'recipes']
-        extra_kwargs = {
-            'password': {'write_only': True},
-            'email': {'required': True},
-            'username': {'required': True},
-            'first_name': {'required': True},
-            'last_name': {'required': True},
-        }
+                  'is_subscribed', 'avatar']
 
     def get_avatar(self, obj):
         """Возвращаем аватар, если он есть, иначе возвращаем None."""
