@@ -5,7 +5,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserUserViewSet
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.pagination import LimitOffsetPagination
+#  from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import (IsAuthenticatedOrReadOnly,
                                         IsAuthenticated)
 from rest_framework.response import Response
@@ -21,7 +21,6 @@ from .serializers import (
     IngredientSerializer,
     RecipeSerializer,
     TagSerializer,
-    UserSerializer
 )
 
 User = get_user_model()
@@ -193,22 +192,21 @@ class UserViewSet(DjoserUserViewSet):
                 author=author,
                 subscriber=current_user
             )
-            user_serializer = UserSerializer(
+            user_serializer = FollowSerializer(
                 author,
-                context={'request': request}
+                context={'request': request},
             )
             recipes = author.recipes.all()
             recipes_limit = request.query_params.get('recipes_limit')
             if recipes_limit is not None:
                 recipes = recipes[:int(recipes_limit)]
+
             recipe_serializer = ShortRecipeSerializer(recipes, many=True)
-            count = author.recipes.count()
-            return Response(
-                {**user_serializer.data,
-                 'recipes': recipe_serializer.data,
-                 'recipes_count': count},
-                status=status.HTTP_201_CREATED
-            )
+            response_data = {
+                **user_serializer.data,
+                'recipes': recipe_serializer.data,
+            }
+            return Response(response_data, status=status.HTTP_201_CREATED)
 
         elif request.method == 'DELETE':
             if not SUBSCRIBE.exists():
@@ -224,19 +222,19 @@ class UserViewSet(DjoserUserViewSet):
     @action(detail=False, methods=['get'], url_path='subscriptions')
     def subscriptions(self, request):
         """Отображение подписок."""
+        pass
+        # if not request.user.is_authenticated:
+        #     return Response(
+        #         {'detail': 'Пользователь не аутентифицирован'},
+        #         status=status.HTTP_401_UNAUTHORIZED
+        #     )
 
-        if not request.user.is_authenticated:
-            return Response(
-                {'detail': 'Пользователь не аутентифицирован'},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
+        # subscriptions = Follow.objects.filter(
+        #     user=request.user).select_related('following')
+        # subscribed_users = [follow.following for follow in subscriptions]
+        # paginator = LimitOffsetPagination()
+        # paginated_users = paginator.paginate_queryset(subscribed_users,
+        #                                               request)
 
-        subscriptions = Follow.objects.filter(
-            user=request.user).select_related('following')
-        subscribed_users = [follow.following for follow in subscriptions]
-        paginator = LimitOffsetPagination()
-        paginated_users = paginator.paginate_queryset(subscribed_users,
-                                                      request)
-
-        serializer = FollowSerializer(paginated_users, many=True)
-        return paginator.get_paginated_response(serializer.data)
+        # serializer = FollowSerializer(paginated_users, many=True)
+        # return paginator.get_paginated_response(serializer.data)

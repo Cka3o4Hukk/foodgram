@@ -231,17 +231,17 @@ class ShortRecipeSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'image', 'cooking_time']
 
 
-class FollowSerializer(serializers.ModelSerializer):
+class FollowSerializer(UserSerializer):
     """Кастомный пользователь."""
 
-    avatar = serializers.SerializerMethodField()
     #  recipes = ShortRecipeSerializer(many=True, read_only=True)
+    recipes_count = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = ['email', 'id', 'username', 'first_name', 'last_name',
-                  'is_subscribed', 'avatar']
+                  'is_subscribed', 'avatar', 'recipes_count']
 
-    def get_avatar(self, obj):
-        """Возвращаем аватар, если он есть, иначе возвращаем None."""
-        return obj.avatar.url if obj.avatar else None
+    def get_recipes_count(self, obj):
+        """Возвращает количество рецептов пользователя."""
+        return obj.recipes.count()
