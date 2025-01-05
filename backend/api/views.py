@@ -3,9 +3,9 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404  # , redirect
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserUserViewSet
-from rest_framework import filters, status, viewsets
+from rest_framework import filters, generics, status, viewsets
 from rest_framework.decorators import action
-#  from rest_framework.pagination import LimitOffsetPagination
+from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import (IsAuthenticatedOrReadOnly,
                                         IsAuthenticated)
 from rest_framework.response import Response
@@ -51,7 +51,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             status=status.HTTP_200_OK
         )
 
-    def shopping_cart_and_favorite(self, request, model, pk=None):
+    def shopping_cart_and_favorite(self, request, model, pk):
         """Добавление рецепта в избранное."""
         recipe = get_object_or_404(Recipe, pk=pk)
         user = request.user
@@ -172,8 +172,9 @@ class UserViewSet(DjoserUserViewSet):
             permission_classes=[IsAuthenticated])
     def subscribe(self, request, id=None):
         """Настройка подписки."""
-        author = request.user
-        current_user = self.get_object()
+        author = self.get_object()
+        current_user = request.user
+
         SUBSCRIBE = Follow.objects.filter(
             author=author, subscriber=current_user)
 
@@ -192,21 +193,15 @@ class UserViewSet(DjoserUserViewSet):
                 author=author,
                 subscriber=current_user
             )
-            user_serializer = FollowSerializer(
-                author,
-                context={'request': request},
-            )
             recipes = author.recipes.all()
             recipes_limit = request.query_params.get('recipes_limit')
             if recipes_limit is not None:
                 recipes = recipes[:int(recipes_limit)]
 
-            recipe_serializer = ShortRecipeSerializer(recipes, many=True)
-            response_data = {
-                **user_serializer.data,
-                'recipes': recipe_serializer.data,
-            }
-            return Response(response_data, status=status.HTTP_201_CREATED)
+            return Response({
+                **FollowSerializer(author, context={'request': request}).data,
+                'recipes': ShortRecipeSerializer(recipes, many=True).data},
+                status=status.HTTP_201_CREATED)
 
         elif request.method == 'DELETE':
             if not SUBSCRIBE.exists():
@@ -219,22 +214,8 @@ class UserViewSet(DjoserUserViewSet):
                 {'detail': 'Вы успешно отписались от пользователя'},
                 status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=False, methods=['get'], url_path='subscriptions')
-    def subscriptions(self, request):
-        """Отображение подписок."""
-        pass
-        # if not request.user.is_authenticated:
-        #     return Response(
-        #         {'detail': 'Пользователь не аутентифицирован'},
-        #         status=status.HTTP_401_UNAUTHORIZED
-        #     )
 
-        # subscriptions = Follow.objects.filter(
-        #     user=request.user).select_related('following')
-        # subscribed_users = [follow.following for follow in subscriptions]
-        # paginator = LimitOffsetPagination()
-        # paginated_users = paginator.paginate_queryset(subscribed_users,
-        #                                               request)
-
-        # serializer = FollowSerializer(paginated_users, many=True)
-        # return paginator.get_paginated_response(serializer.data)
+class SubsList(generics.ListAPIView):
+    queryset = User.objects.all()
+    serializer_class = FollowSerializer
+    pagination_class = LimitOffsetPagination

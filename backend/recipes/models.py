@@ -118,6 +118,12 @@ class RecipeIngredients(models.Model):
         ordering = ['recipe']
 
 
+#  class BaseModel(models.Model):
+
+#    class Meta:
+#        unique_together = ('user', 'recipe')
+
+
 class ShoppingCart(models.Model):
     user = models.ForeignKey(
         User,
