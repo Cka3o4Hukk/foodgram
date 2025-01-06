@@ -231,16 +231,28 @@ class ShortRecipeSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'image', 'cooking_time']
 
 
-class FollowSerializer(UserSerializer):
+class FollowSerializer(serializers.ModelSerializer):
     """Кастомный пользователь."""
 
-    #  recipes = ShortRecipeSerializer(many=True, read_only=True)
+    recipes = ShortRecipeSerializer(many=True, read_only=True)
     recipes_count = serializers.SerializerMethodField()
+    is_subscribed = serializers.BooleanField(default=True)
 
     class Meta:
         model = User
         fields = ['email', 'id', 'username', 'first_name', 'last_name',
-                  'is_subscribed', 'avatar', 'recipes_count']
+                  'is_subscribed', 'recipes', 'avatar', 'recipes_count']
+
+    def to_representation(self, instance):
+        """Преобразует объект в словарь с учетом лимита рецептов."""
+        representation = super().to_representation(instance)
+        request = self.context.get('request')
+        recipes_limit = request.query_params.get('recipes_limit')
+
+        if recipes_limit is not None:
+            representation['recipes'] = representation[
+                'recipes'][:int(recipes_limit)]
+        return representation
 
     def get_recipes_count(self, obj):
         """Возвращает количество рецептов пользователя."""

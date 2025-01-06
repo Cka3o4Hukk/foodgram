@@ -169,7 +169,8 @@ class UserViewSet(DjoserUserViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=['post', 'delete'], url_path='subscribe',
-            permission_classes=[IsAuthenticated])
+            permission_classes=[IsAuthenticated],
+            serializer_class=FollowSerializer)
     def subscribe(self, request, id=None):
         """Настройка подписки."""
         author = self.get_object()
@@ -193,15 +194,10 @@ class UserViewSet(DjoserUserViewSet):
                 author=author,
                 subscriber=current_user
             )
-            recipes = author.recipes.all()
-            recipes_limit = request.query_params.get('recipes_limit')
-            if recipes_limit is not None:
-                recipes = recipes[:int(recipes_limit)]
-
-            return Response({
-                **FollowSerializer(author, context={'request': request}).data,
-                'recipes': ShortRecipeSerializer(recipes, many=True).data},
-                status=status.HTTP_201_CREATED)
+            follow_serializer = FollowSerializer(author,
+                                                 context={'request': request})
+            return Response(follow_serializer.data,
+                            status=status.HTTP_201_CREATED)
 
         elif request.method == 'DELETE':
             if not SUBSCRIBE.exists():
