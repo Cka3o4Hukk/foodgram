@@ -50,9 +50,6 @@ class Ingredient(models.Model):
         return f'{self.name} ({self.measurement_unit})'
 
 
-BASE_URL = '127.0.0.1'
-
-
 class Recipe(models.Model):
     author = models.ForeignKey(
         User,
@@ -71,7 +68,7 @@ class Recipe(models.Model):
         verbose_name='Ингредиент'
     )
     image = models.ImageField(
-        upload_to=f'{BASE_URL}/recipes/images/',
+        upload_to='recipes/images/',
         verbose_name='Изображение'
     )
     name = models.CharField(

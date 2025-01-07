@@ -243,8 +243,21 @@ class FollowSerializer(serializers.ModelSerializer):
         fields = ['email', 'id', 'username', 'first_name', 'last_name',
                   'is_subscribed', 'recipes', 'avatar', 'recipes_count']
 
+    def validate(self, attrs):
+        print('запущен метод validate')
+        request = self.context.get('request')
+        current_user = request.user
+        author_id = self.context.get('author_id')
+
+        if current_user.id == author_id:
+            raise serializers.ValidationError(
+                {'detail': 'Подписка и отписка от самого себя невозможна'}
+            )
+        return attrs
+
     def to_representation(self, instance):
         """Преобразует объект в словарь с учетом лимита рецептов."""
+        print('запущен метод to_representation')
         representation = super().to_representation(instance)
         request = self.context.get('request')
         recipes_limit = request.query_params.get('recipes_limit')
@@ -256,4 +269,5 @@ class FollowSerializer(serializers.ModelSerializer):
 
     def get_recipes_count(self, obj):
         """Возвращает количество рецептов пользователя."""
+        print('запущен метод get_recipes_count')
         return obj.recipes.count()
