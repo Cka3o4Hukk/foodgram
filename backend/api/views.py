@@ -170,6 +170,7 @@ class UserViewSet(DjoserUserViewSet):
             serializer_class=FollowSerializer)
     def subscribe(self, request, id=None):
         """Настройка подписки."""
+        print('start')
         author = self.get_object()
         current_user = request.user
 
@@ -181,21 +182,31 @@ class UserViewSet(DjoserUserViewSet):
                 {'detail': 'Подписка и отписка от самого себя невозможна'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        if SUBSCRIBE.exists():
-            return Response(
-                {'detail': 'Вы уже подписаны на этого пользователя'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        print('проверка себя')
+        # if SUBSCRIBE.exists():
+        #     return Response(
+        #         {'detail': 'Вы уже подписаны на этого пользователя'},
+        #         status=status.HTTP_400_BAD_REQUEST
+        #     )
         Follow.objects.get_or_create(
             author=author,
             subscriber=current_user
         )
-        serializer = self.get_serializer(author, data=request.data)
+        print('создание')
+        serializer = self.get_serializer(data=author, context={'request': request})
+        print('serializer')
+        #serializer = self.get_serializer(author,
+                                         #context={'request': request})
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        print('валидация')
+                                        # context={'request': request})
+        # serializer = self.get_serializer(author, data=request.data)
+        # serializer.is_valid(raise_exception=True)
+        # serializer.save()
         #  follow_serializer = FollowSerializer(author,
         #  context={'request': request})
         #  follow_serializer.is_valid(raise_exception=True)
+        print(serializer.data)
         return Response(serializer.data,
                         status=status.HTTP_201_CREATED)
 

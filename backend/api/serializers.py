@@ -17,6 +17,7 @@ MAX_VALUE = 32000
 
 
 class UserCreateSerializer(DjoserUserCreateSerializer):
+    """Создание пользователя."""
 
     class Meta:
         model = User
@@ -25,6 +26,8 @@ class UserCreateSerializer(DjoserUserCreateSerializer):
 
 
 class UserSerializer(DjoserUserSerializer):
+    """Отображение пользователя."""
+
     is_subscribed = serializers.SerializerMethodField()
 
     class Meta:
@@ -142,6 +145,21 @@ class RecipeSerializer(serializers.ModelSerializer):
 
         return validate_ingredients(data)
 
+    def fill_with_ingredients(self, recipe, ingredients_data):
+        """Метод наполнения рецепта."""
+
+        RecipeIngredients.objects.bulk_create(
+            RecipeIngredients(
+                recipe=recipe,
+                ingredient=Ingredient.objects.get(
+                    id=ingredient_data['ingredient']['id']
+                ),
+                amount=ingredient_data['amount']
+            )
+            for ingredient_data in ingredients_data)
+
+        return recipe
+
     def create(self, validated_data):
         """Метод для создания рецепта."""
 
@@ -150,20 +168,10 @@ class RecipeSerializer(serializers.ModelSerializer):
 
         recipe = Recipe.objects.create(**validated_data)
         recipe.tags.set(tags_data)
-        recipe_ingredients = [
-            RecipeIngredients(
-                recipe=recipe,
-                ingredient=Ingredient.objects.get(
-                    id=ingredient_data['ingredient']['id']),
-                amount=ingredient_data['amount']
-            )
-            for ingredient_data in ingredients_data
-        ]
 
-        RecipeIngredients.objects.bulk_create(recipe_ingredients)
-        return recipe
+        return self.fill_with_ingredients(recipe, ingredients_data)
 
-    def update(self, instance, validated_data):
+    def update(self, recipe, validated_data):
         """Метод для обновления рецепта."""
 
         if 'ingredients' not in validated_data:
@@ -179,30 +187,18 @@ class RecipeSerializer(serializers.ModelSerializer):
         ingredients_data = validated_data.pop('ingredients')
         tags_data = validated_data.pop('tags')
 
-        instance.save()
+        recipe.save()
 
         # Обновляем теги, если они были переданы
         if tags_data is not None:
-            instance.tags.set(tags_data)
+            recipe.tags.set(tags_data)
 
         # Обновляем ингредиенты
         if ingredients_data is not None:
             # Удаляем старые ингредиенты
-            instance.ingredients.all().delete()
+            recipe.ingredients.all().delete()
 
-            # Создаем новые ингредиенты
-            recipe_ingredients = [
-                RecipeIngredients(
-                    recipe=instance,
-                    ingredient=Ingredient.objects.get(
-                        id=ingredient_data['ingredient']['id']),
-                    amount=ingredient_data['amount']
-                )
-                for ingredient_data in ingredients_data
-            ]
-            RecipeIngredients.objects.bulk_create(recipe_ingredients)
-
-        return instance
+        return self.fill_with_ingredients(recipe, ingredients_data)
 
     def to_representation(self, instance):
         """Метод для отображения всех полей ингредиентов."""

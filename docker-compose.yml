@@ -19,7 +19,7 @@ services:
     volumes:
       - static:/backend_static
       - media:/media
-  
+
   frontend:
     container_name: foodgram-front
     build: ./frontend/
@@ -39,7 +39,3 @@ services:
       - media:/media
     ports:
       - 8080:80
-
-
-
-

@@ -21,7 +21,7 @@ class IngredientAdmin(admin.ModelAdmin):
 class RecipeAdmin(admin.ModelAdmin):
     search_fields = ('name', )
     list_display = ('id', 'author', 'name', 'text',
-                    'cooking_time')
+                    'cooking_time', 'image')
 
 
 @admin.register(FavoriteRecipe)

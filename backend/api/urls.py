@@ -1,5 +1,3 @@
-from django.conf import settings
-from django.conf.urls.static import static
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
@@ -18,4 +16,4 @@ urlpatterns = [
     path('users/subscriptions/', SubsList.as_view()),
     path('', include(router.urls)),
     path('auth/', include('djoser.urls.authtoken')),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+]
