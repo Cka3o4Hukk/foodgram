@@ -174,8 +174,8 @@ class UserViewSet(DjoserUserViewSet):
         author = self.get_object()
         current_user = request.user
 
-        SUBSCRIBE = Follow.objects.filter(
-            author=author, subscriber=current_user)
+        # SUBSCRIBE = Follow.objects.filter(
+        #   author=author, subscriber=current_user)
 
         if current_user == author:
             return Response(
@@ -193,13 +193,14 @@ class UserViewSet(DjoserUserViewSet):
             subscriber=current_user
         )
         print('создание')
-        serializer = self.get_serializer(data=author, context={'request': request})
+        serializer = self.get_serializer(
+            data=author, context={'request': request})
         print('serializer')
-        #serializer = self.get_serializer(author,
-                                         #context={'request': request})
+        #  serializer = self.get_serializer(author,
+        #  context={'request': request})
         serializer.is_valid(raise_exception=True)
         print('валидация')
-                                        # context={'request': request})
+        #  context={'request': request})
         # serializer = self.get_serializer(author, data=request.data)
         # serializer.is_valid(raise_exception=True)
         # serializer.save()
