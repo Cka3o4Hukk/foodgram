@@ -231,7 +231,8 @@ class FollowSerializer(serializers.ModelSerializer):
     """Кастомный пользователь."""
 
     recipes = ShortRecipeSerializer(many=True, read_only=True)
-    recipes_count = serializers.SerializerMethodField()
+    recipes_count = serializers.IntegerField(source='recipes.count',
+                                             read_only=True)
     is_subscribed = serializers.BooleanField(default=True)
 
     class Meta:
@@ -242,13 +243,12 @@ class FollowSerializer(serializers.ModelSerializer):
     def validate_subscription(self):
         """Проверка подписки на самого себя."""
         request = self.context.get('request')
-        author = self.context.get('author')
 
-        if request.user == author:
+        if request.user == self.instance:
             raise serializers.ValidationError(
                 {'detail': 'Подписка и отписка от самого себя невозможна'}
             )
-        if Follow.objects.filter(author=author,
+        if Follow.objects.filter(author=self.instance,
                                  subscriber=request.user).exists():
             raise serializers.ValidationError(
                 {'detail': 'Вы уже подписаны на этого пользователя'}
@@ -256,7 +256,6 @@ class FollowSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         """Преобразует объект в словарь с учетом лимита рецептов."""
-        print('запущен метод to_representation')
         representation = super().to_representation(instance)
         request = self.context.get('request')
         recipes_limit = request.query_params.get('recipes_limit')
@@ -265,8 +264,3 @@ class FollowSerializer(serializers.ModelSerializer):
             representation['recipes'] = representation[
                 'recipes'][:int(recipes_limit)]
         return representation
-
-    def get_recipes_count(self, obj):
-        """Возвращает количество рецептов пользователя."""
-        print('запущен метод get_recipes_count')
-        return obj.recipes.count()

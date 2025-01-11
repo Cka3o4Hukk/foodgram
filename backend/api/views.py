@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.http import HttpResponse
-from django.shortcuts import get_object_or_404  # , redirect
+from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserUserViewSet
 from rest_framework import filters, generics, status, viewsets
@@ -55,25 +55,22 @@ class RecipeViewSet(viewsets.ModelViewSet):
         """Добавление рецепта в избранное."""
         recipe = get_object_or_404(Recipe, pk=pk)
         user = request.user
-        RECIPE_EXISTS = model.objects.filter(
-            user=user,
-            recipe=recipe
-        ).exists()
 
         if request.method == 'POST':
-            if RECIPE_EXISTS:
+            if model.objects.filter(user=user, recipe=recipe).exists():
                 return Response(
-                    {'detail': 'Вы уже добавили рецепт.'},
+                    {'detail': 'Вы уже добавили этот рецепт.'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            model.objects.get_or_create(user=user, recipe=recipe)
+
+            model.objects.create(user=user, recipe=recipe)
             serializer = ShortRecipeSerializer(recipe)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         elif request.method == 'DELETE':
-            if not RECIPE_EXISTS:
+            if not model.objects.filter(user=user, recipe=recipe).exists():
                 return Response(
-                    {'detail': 'Вы уже удалили рецепт.'},
+                    {'detail': 'Рецепт отсутствует в вашем списке.'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             model.objects.filter(user=user, recipe=recipe).delete()
@@ -135,7 +132,7 @@ class TagViewSet(viewsets.ModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
     pagination_class = None
-    http_method_names = ['get']  # для отладки убрать строчку
+    http_method_names = ['get']
 
 
 class UserViewSet(DjoserUserViewSet):
@@ -174,7 +171,7 @@ class UserViewSet(DjoserUserViewSet):
 
         serializer = self.get_serializer(
             instance=author,
-            context={'request': request, 'author': author}
+            context={'request': request}
         )
         serializer.validate_subscription()
 
@@ -204,9 +201,13 @@ class UserViewSet(DjoserUserViewSet):
 
 
 class SubsList(generics.ListAPIView):
+    """Список подписок текущего пользователя."""
+
     serializer_class = FollowSerializer
     pagination_class = LimitOffsetPagination
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        current_user = self.request.user
-        return User.objects.filter(following__subscriber=current_user)
+        """Текущие подписки пользователя."""
+        return User.objects.filter(
+            idols__subscriber=self.request.user).prefetch_related('recipes')
