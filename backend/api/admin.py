@@ -1,5 +1,7 @@
 from django.contrib import admin
+
 from recipes.models import FavoriteRecipe, Ingredient, Recipe, Tag
+from users.models import User
 
 
 @admin.register(Tag)
@@ -28,3 +30,9 @@ class RecipeAdmin(admin.ModelAdmin):
 class FavoriteRecipeAdmin(admin.ModelAdmin):
     search_fields = ('user', )
     list_display = ('id', 'user', 'recipe')
+
+
+@admin.register(User)
+class UserAdmin(admin.ModelAdmin):
+    search_fields = ('email', )
+    list_display = ('email', 'first_name', 'last_name')
