@@ -41,7 +41,7 @@ services:
       - db
       - backend
       - frontend
-    volumes:
+    volumes: 
       - static:/staticfiles
       - media:/media
     ports:
