@@ -1,7 +1,7 @@
 volumes:
-  static_production:
+  static:
   pg_data_production:
-  media_production:
+  media:
 
 services:
   db:
@@ -9,29 +9,46 @@ services:
     env_file: .env
     volumes:
       - pg_data_production:/var/lib/postgresql/data
+    networks:
+      - foodgram_network
 
   backend:
+    container_name: foodgram-backend
     image: ajiexdev/foodgram_backend
     env_file: .env
     depends_on:
       - db
     volumes:
-      - static_production:/back_static
-      - media_production:/media
-  
+      - static:/backend_static
+      - media:/media
+    networks:
+      - foodgram_network
+
   frontend:
+    container_name: foodgram-frontend
     image: ajiexdev/foodgram_frontend
     command: cp -r /app/build/. /frontend_static/
     volumes:
-      - static_production:/front_static
+      - static:/frontend_static
+    networks:
+      - foodgram_network
 
   nginx:
+    container_name: foodgram-nginx
     image: ajiexdev/foodgram_nginx
     env_file: .env
     depends_on:
       - db
+      - backend
+      - frontend
     volumes:
-      - static_production:/static_files
-      - media_production:/media
+      - static:/staticfiles
+      - media:/media
     ports:
       - 8080:80
+    networks:
+      - foodgram_network
+
+networks:
+  foodgram_network:
+    external: true
