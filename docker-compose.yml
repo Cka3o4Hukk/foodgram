@@ -26,7 +26,6 @@ services:
     command: cp -r /app/build/. /frontend_static/
     volumes:
       - static:/frontend_static
-
   nginx:
     container_name: foodgram-proxy
     build: ./nginx/
