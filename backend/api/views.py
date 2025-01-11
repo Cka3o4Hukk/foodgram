@@ -235,15 +235,9 @@ class UserViewSet(DjoserUserViewSet):
 
 
 class SubsList(generics.ListAPIView):
-    queryset = User.objects.all()
     serializer_class = FollowSerializer
     pagination_class = LimitOffsetPagination
 
-
-class TestView(generics.CreateAPIView):
-    queryset = Follow.objects.all()
-
-    def post(self, request):
-        serializer = FollowSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        return Response({'ok': 'ok'})
+    def get_queryset(self):
+        current_user = self.request.user
+        return User.objects.filter(following__subscriber=current_user)
