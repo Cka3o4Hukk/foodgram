@@ -239,17 +239,20 @@ class FollowSerializer(serializers.ModelSerializer):
         fields = ['email', 'id', 'username', 'first_name', 'last_name',
                   'is_subscribed', 'recipes', 'avatar', 'recipes_count']
 
-    def validate(self, attrs):
-        print('запущен метод validate')
+    def validate_subscription(self):
+        """Проверка подписки на самого себя."""
         request = self.context.get('request')
-        current_user = request.user
-        author_id = self.context.get('author_id')
+        author = self.context.get('author')
 
-        if current_user.id == author_id:
+        if request.user == author:
             raise serializers.ValidationError(
                 {'detail': 'Подписка и отписка от самого себя невозможна'}
             )
-        return attrs
+        if Follow.objects.filter(author=author,
+                                 subscriber=request.user).exists():
+            raise serializers.ValidationError(
+                {'detail': 'Вы уже подписаны на этого пользователя'}
+            )
 
     def to_representation(self, instance):
         """Преобразует объект в словарь с учетом лимита рецептов."""

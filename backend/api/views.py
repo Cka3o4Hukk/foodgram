@@ -170,68 +170,37 @@ class UserViewSet(DjoserUserViewSet):
             serializer_class=FollowSerializer)
     def subscribe(self, request, id=None):
         """Настройка подписки."""
-        print('start')
         author = self.get_object()
-        current_user = request.user
 
-        # SUBSCRIBE = Follow.objects.filter(
-        #   author=author, subscriber=current_user)
-
-        if current_user == author:
-            return Response(
-                {'detail': 'Подписка и отписка от самого себя невозможна'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        print('проверка себя')
-        # if SUBSCRIBE.exists():
-        #     return Response(
-        #         {'detail': 'Вы уже подписаны на этого пользователя'},
-        #         status=status.HTTP_400_BAD_REQUEST
-        #     )
-        Follow.objects.get_or_create(
-            author=author,
-            subscriber=current_user
-        )
-        print('создание')
         serializer = self.get_serializer(
-            data=author, context={'request': request})
-        print('serializer')
-        #  serializer = self.get_serializer(author,
-        #  context={'request': request})
-        serializer.is_valid(raise_exception=True)
-        print('валидация')
-        #  context={'request': request})
-        # serializer = self.get_serializer(author, data=request.data)
-        # serializer.is_valid(raise_exception=True)
-        # serializer.save()
-        #  follow_serializer = FollowSerializer(author,
-        #  context={'request': request})
-        #  follow_serializer.is_valid(raise_exception=True)
-        print(serializer.data)
-        return Response(serializer.data,
-                        status=status.HTTP_201_CREATED)
+            instance=author,
+            context={'request': request, 'author': author}
+        )
+        serializer.validate_subscription()
+
+        Follow.objects.create(
+            author=author,
+            subscriber=request.user
+        )
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @subscribe.mapping.delete
     def delete_subscribe(self, request, id=None):
+        """Удаление подписки."""
         author = self.get_object()
         current_user = request.user
 
-        SUBSCRIBE = Follow.objects.filter(
+        SUBSCRIPTION = Follow.objects.filter(
             author=author, subscriber=current_user)
-        # if current_user == author:
-        #     return Response(
-        #         {'detail': 'Подписка и отписка от самого себя невозможна'},
-        #         status=status.HTTP_400_BAD_REQUEST
-        #     )
-        if not SUBSCRIBE.exists():
+        if not SUBSCRIPTION.exists():
             return Response(
                 {'detail': 'Вы не подписаны на этого пользователя'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        SUBSCRIBE.delete()
-        return Response(
-            {'detail': 'Вы успешно отписались от пользователя'},
-            status=status.HTTP_204_NO_CONTENT)
+
+        SUBSCRIPTION.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class SubsList(generics.ListAPIView):
